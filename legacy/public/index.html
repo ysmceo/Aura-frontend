@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CEO Unisex Salon offers professional hair, beauty, grooming, bookings, and product delivery services in Lagos.">
+  <title>CEO UNISEX SALON - Professional Hair & Beauty Services</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/images/logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/images/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#home">Skip to main content</a>
+  <div id="scrollProgress" class="scroll-progress" aria-hidden="true"></div>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="container">
+      <a class="logo" href="#home" aria-label="CEO Unisex Salon Home">
+        <img class="logo-img" src="/images/logo.svg" alt="">
+        <span class="logo-text" data-i18n="hero_title">CEO UNISEX SALON</span>
+      </a>
+      <div class="nav-center">
+        <div class="info-section">
+          <div class="time-date-weather">
+            <div class="clock-date">
+              <span id="timeDisplay" class="time">00:00:00</span>
+              <span id="dateDisplay" class="date">Loading...</span>
+            </div>
+            <div class="weather-widget">
+              <span id="weatherIcon" class="weather-icon">🌤️</span>
+              <span id="weatherInfo" class="weather-info">--°C</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button id="navMenuToggle" class="nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mainNavMenu">☰</button>
+      <ul id="mainNavMenu" class="nav-menu">
+        <li><a href="#home" data-i18n="nav_home">Home</a></li>
+        <li><a href="#services" data-i18n="nav_services">Services</a></li>
+        <li><a href="#products">Products</a></li>
+        <li><a href="#ceo">CEOs</a></li>
+        <li><a href="#gallery" data-i18n="nav_gallery">Gallery</a></li>
+        <li><a href="#team" data-i18n="nav_team">Team</a></li>
+        <li><a href="#contact" data-i18n="nav_contact">Contact</a></li>
+        <li>
+          <button id="languageSelectorBtn" class="lang-btn-nav" title="Change Language">
+            🌐 <span data-i18n="nav_language">Language</span>
+          </button>
+        </li>
+        <li><button id="adminLoginBtn" class="admin-btn" title="Admin Login/Register" data-i18n="nav_admin">Admin</button></li>
+        <li><button id="sunnyModeToggle" class="dark-mode-btn" title="Toggle Sunny Intensity">☀️ Soft</button></li>
+        <li><button id="darkModeToggle" class="dark-mode-btn" title="Toggle Dark Mode">🌙</button></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="hero">
+    <div class="hero-content">
+      <div class="hero-pill">Premium care • Smart booking • Live tracking</div>
+      <img class="hero-logo" src="/images/logo.svg" alt="CEO Unisex Salon logo">
+      <h1 data-i18n="hero_title">CEO UNISEX SALON</h1>
+      <p data-i18n="hero_subtitle">Where Beauty Meets Excellence</p>
+      <p class="subtitle" data-i18n="hero_description">Transform Your Look with Our Professional Stylists</p>
+      <button class="cta-btn" onclick="scrollToBooking()" data-i18n="hero_cta">Book Your Appointment</button>
+      <div class="hero-stats" aria-label="Salon highlights">
+        <div class="hero-stat">
+          <strong class="hero-stat-value" data-counter-target="12000">0</strong>
+          <span class="hero-stat-label">Happy Clients</span>
+        </div>
+        <div class="hero-stat">
+          <strong class="hero-stat-value" data-counter-target="15">0</strong>
+          <span class="hero-stat-label">Years Experience</span>
+        </div>
+        <div class="hero-stat">
+          <strong class="hero-stat-value" data-counter-target="8">0</strong>
+          <span class="hero-stat-label">Premium Services</span>
+        </div>
+      </div>
+      <div class="hero-trust" aria-label="Trust and service standards">
+        <span class="hero-trust-chip">✅ Certified Stylists</span>
+        <span class="hero-trust-chip">🧼 Hygienic Tools</span>
+        <span class="hero-trust-chip">🔒 Secure Payments</span>
+        <span class="hero-trust-chip">📍 Lagos Based Team</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="professional-ribbon" aria-label="Why clients trust us">
+    <div class="container professional-ribbon__inner">
+      <div class="professional-ribbon__item">
+        <strong>Professional Service</strong>
+        <span>Experienced stylists and friendly support.</span>
+      </div>
+      <div class="professional-ribbon__item">
+        <strong>Transparent Pricing</strong>
+        <span>Clear totals for services, products, and delivery.</span>
+      </div>
+      <div class="professional-ribbon__item">
+        <strong>Real-time Tracking</strong>
+        <span>Track bookings and product orders instantly.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CEO Spotlight Section -->
+  <section id="ceo" class="ceo-section">
+    <div class="ceo-bg" aria-hidden="true">
+      <span class="ceo-bg__slide ceo-bg__slide--1"></span>
+      <span class="ceo-bg__slide ceo-bg__slide--2"></span>
+      <span class="ceo-bg__slide ceo-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2>Meet Our CEOs</h2>
+      <p class="section-subtitle">Leadership behind CEO Unisex Salon</p>
+
+      <div class="ceo-grid">
+        <div class="ceo-card">
+          <img src="/images/ysmceo.jpeg" alt="Okonta Victor - CEO of CEO Unisex Salon">
+          <h3>Okonta Victor</h3>
+          <p class="ceo-role">The CEO of CEO Unisex Salon</p>
+        </div>
+
+        <div class="ceo-card">
+          <img src="/images/ysmwife.jpeg" alt="Okonta Lizzy - CEO of CEO Unisex Salon">
+          <h3>Okonta Lizzy</h3>
+          <p class="ceo-role">The CEO of CEO Unisex Salon</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section id="services" class="services">
+    <div class="services-bg" aria-hidden="true">
+      <span class="services-bg__slide services-bg__slide--1"></span>
+      <span class="services-bg__slide services-bg__slide--2"></span>
+      <span class="services-bg__slide services-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2 data-i18n="services_title">Our Services</h2>
+      <p class="section-subtitle" data-i18n="services_subtitle">Premium Hair & Beauty Services</p>
+      
+      <div class="services-grid" id="servicesGrid">
+        <!-- Services loaded from API -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Products Section -->
+  <section id="products" class="products">
+    <div class="products-bg" aria-hidden="true">
+      <span class="products-bg__slide products-bg__slide--1"></span>
+      <span class="products-bg__slide products-bg__slide--2"></span>
+      <span class="products-bg__slide products-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2>Products We Sell</h2>
+      <p class="section-subtitle">Quality hair, beauty, and grooming products available at our salon</p>
+
+      <div class="products-grid" id="productsGrid">
+        <!-- Products loaded from API -->
+      </div>
+
+    </div>
+  </section>
+
+  <section id="order-products" class="booking-section">
+    <div class="track-bg" aria-hidden="true">
+      <span class="track-bg__slide track-bg__slide--1"></span>
+      <span class="track-bg__slide track-bg__slide--2"></span>
+      <span class="track-bg__slide track-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2>Order Products</h2>
+      <p class="section-subtitle">Place a product order online and choose standard or express delivery.</p>
+
+      <form id="productOrderForm" class="booking-form">
+        <div class="form-group">
+          <label for="productOrderName">Full Name *</label>
+          <input type="text" id="productOrderName" required>
+        </div>
+
+        <div class="form-group">
+          <label for="productOrderEmail">Email Address *</label>
+          <input type="email" id="productOrderEmail" required>
+        </div>
+
+        <div class="form-group">
+          <label for="productOrderPhone">Phone Number *</label>
+          <input type="tel" id="productOrderPhone" required>
+        </div>
+
+        <div class="form-group">
+          <label for="productOrderAddress">Delivery Address *</label>
+          <textarea id="productOrderAddress" rows="3" placeholder="Enter full delivery address" required></textarea>
+          <div class="address-lookup-actions">
+            <button type="button" id="productOrderAddressMapBtn" class="address-map-btn">🗺️ Open map</button>
+            <small id="productOrderAddressLookupStatus" class="form-help-text-tight"></small>
+          </div>
+          <div id="productOrderAddressSuggestions" class="address-suggestions hidden" aria-live="polite"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="productOrderPaymentMethod">Payment Method *</label>
+          <select id="productOrderPaymentMethod" required>
+            <option value="">Select payment method...</option>
+            <option value="Cash">💵 Cash</option>
+            <option value="Bank Transfer">🏦 Bank Transfer</option>
+            <option value="Credit Card">💳 Credit Card</option>
+            <option value="Debit Card">💳 Debit Card</option>
+            <option value="USSD">📱 USSD</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="productOrderDeliverySpeed">Delivery Speed *</label>
+          <select id="productOrderDeliverySpeed" required>
+            <option value="standard">Standard Delivery</option>
+            <option value="express">Express Delivery (Faster)</option>
+          </select>
+          <small class="form-help-text-tight">Express orders are prioritized in courier dispatch and auto-delivery progression.</small>
+        </div>
+
+        <div class="form-group">
+          <label>🛍️ Select Products *</label>
+          <div id="productOrderPicker" class="booking-product-picker">
+            <div class="booking-product-empty">Products will load here...</div>
+          </div>
+          <div id="productOrderSummaryCard" class="order-summary-card" aria-live="polite">
+            <div class="order-summary-row">
+              <span>Items Subtotal</span>
+              <strong id="productOrderSubtotal">₦0</strong>
+            </div>
+            <div class="order-summary-row">
+              <span>Delivery Fee</span>
+              <strong id="productOrderDeliveryFee">₦0</strong>
+            </div>
+            <div class="order-summary-row order-summary-row-total">
+              <span>Estimated Grand Total</span>
+              <strong id="productOrderGrandTotal">₦0</strong>
+            </div>
+            <small id="productOrderSummary" class="form-help-text-tight order-summary-text">Select product(s) to see your live total.</small>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn">Place Product Order</button>
+        <button type="button" id="clearProductOrderBtn" class="submit-btn submit-btn-secondary">Clear Form</button>
+      </form>
+
+      <div id="productOrderMessage" class="message"></div>
+      <div id="productOrderResult"></div>
+    </div>
+  </section>
+
+  <!-- Booking Section -->
+  <section id="booking" class="booking-section">
+    <div class="booking-bg" aria-hidden="true">
+      <span class="booking-bg__slide booking-bg__slide--1"></span>
+      <span class="booking-bg__slide booking-bg__slide--2"></span>
+      <span class="booking-bg__slide booking-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2 data-i18n="booking_title">Book Your Appointment</h2>
+      <form id="bookingForm" class="booking-form">
+        <div class="booking-readiness" aria-live="polite">
+          <div class="booking-readiness__head">
+            <strong>Booking readiness</strong>
+            <span id="bookingReadinessPercent" class="booking-readiness__percent">0%</span>
+          </div>
+          <div class="booking-readiness__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Booking form completion">
+            <span id="bookingReadinessBar" class="booking-readiness__bar"></span>
+          </div>
+          <small id="bookingReadinessHint" class="booking-readiness__hint">Complete required fields to continue smoothly.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="name"><span data-i18n="booking_fullname">Full Name</span> *</label>
+          <input type="text" id="name" required autocomplete="name" placeholder="e.g. Okonta Victor">
+          <small class="form-help-text-tight">Use the same name you want on your booking confirmation.</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="email"><span data-i18n="booking_email">Email Address</span> *</label>
+          <input type="email" id="email" required autocomplete="email" inputmode="email" placeholder="you@example.com">
+          <small class="form-help-text-tight">We use this email for booking updates and tracking details.</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="phone"><span data-i18n="booking_phone">Phone Number</span> *</label>
+          <input type="tel" id="phone" required autocomplete="tel" inputmode="tel" placeholder="080...">
+          <small class="form-help-text-tight">Use an active number so we can reach you quickly if needed.</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="service"><span data-i18n="booking_service">Select Service</span> *</label>
+          <select id="service" required>
+            <option value="" data-i18n="booking_choose_service">Choose a service...</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="date"><span data-i18n="booking_date">Preferred Date</span> *</label>
+          <input type="date" id="date" required>
+          <small class="form-help-text-tight">Choose your preferred appointment date.</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="time"><span data-i18n="booking_time">Preferred Time</span> *</label>
+          <input type="time" id="time" required>
+          <small class="form-help-text-tight">Select a convenient time slot. We’ll confirm availability.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="language" data-i18n="booking_language">Preferred Language</label>
+          <input id="language" list="bookingLanguageList" placeholder="Type to search language (e.g. English, Yoruba)" autocomplete="off">
+          <datalist id="bookingLanguageList">
+            <option value="English"></option>
+            <option value="Yoruba"></option>
+            <option value="Hausa"></option>
+            <option value="Igbo"></option>
+            <option value="Pidgin"></option>
+            <option value="French"></option>
+            <option value="Spanish"></option>
+            <option value="Portuguese"></option>
+            <option value="Arabic"></option>
+            <option value="Chinese"></option>
+            <option value="Hindi"></option>
+            <option value="Swahili"></option>
+            <option value="German"></option>
+            <option value="Italian"></option>
+            <option value="Dutch"></option>
+            <option value="Russian"></option>
+            <option value="Turkish"></option>
+            <option value="Japanese"></option>
+            <option value="Korean"></option>
+            <option value="Other"></option>
+          </datalist>
+          <small class="form-help-text-tight">Start typing to quickly find your preferred language.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="paymentMethod"><span data-i18n="booking_payment">Payment Method</span> *</label>
+          <select id="paymentMethod" required>
+            <option value="" data-i18n="booking_select_payment">Select payment method...</option>
+            <option value="Credit Card">💳 Credit Card</option>
+            <option value="Debit Card">💳 Debit Card</option>
+            <option value="Paystack Bank Transfer">🏦 Paystack Bank Transfer (Instant)</option>
+            <option value="Bank Transfer">🏦 Bank Transfer</option>
+            <option value="USSD">📱 USSD (Mobile Money)</option>
+            <option value="Cash">💵 Cash Payment</option>
+          </select>
+        </div>
+
+        <div class="form-group is-initially-hidden" id="onlinePaymentChannelGroup">
+          <label for="paymentChannel">Online Payment Option</label>
+          <select id="paymentChannel">
+            <option value="">Auto (recommended)</option>
+            <option value="card">Card</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="ussd">USSD</option>
+          </select>
+          <small class="form-help-text">Choose how you want to pay instantly (optional).</small>
+
+          <label for="paymentProvider" class="form-label-spaced">Payment Provider</label>
+          <select id="paymentProvider">
+            <option value="">Auto (use what is configured)</option>
+            <option value="paystack">Paystack</option>
+            <option value="monnify">Monnify</option>
+            <option value="stripe">Stripe</option>
+          </select>
+          <small class="form-help-text">If one provider is not configured, Auto will use the other.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="paymentPlan">Payment Option *</label>
+          <select id="paymentPlan" required>
+            <option value="">Select payment option...</option>
+            <option value="full">Pay Full Amount</option>
+            <option value="deposit_50">Pay 50% Deposit</option>
+          </select>
+          <small id="paymentSummary" class="form-help-text">Select a service to see payment details.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="radio-label">
+            <input type="checkbox" id="homeServiceRequested">
+            <span>Request Home Service (Optional)</span>
+          </label>
+        </div>
+
+        <div class="form-group is-initially-hidden" id="homeServiceAddressGroup">
+          <label for="homeServiceAddress">Home Service Address *</label>
+          <textarea id="homeServiceAddress" rows="3" placeholder="Enter your address for home service..."></textarea>
+          <div class="address-lookup-actions">
+            <button type="button" id="homeServiceAddressMapBtn" class="address-map-btn">🗺️ Open map</button>
+            <small id="homeServiceAddressLookupStatus" class="form-help-text-tight"></small>
+          </div>
+          <div id="homeServiceAddressSuggestions" class="address-suggestions hidden" aria-live="polite"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="refreshment" data-i18n="booking_refreshment">Would you like refreshment during your appointment?</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="refreshment" value="Yes" id="refreshmentYes">
+              <span data-i18n="booking_yes">Yes, please</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="refreshment" value="No" id="refreshmentNo" checked>
+              <span data-i18n="booking_no">No, thank you</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="specialRequests" data-i18n="booking_requests">Special Requests or Notes</label>
+          <textarea id="specialRequests" rows="4" placeholder="Let us know any special requests, allergies, or preferences you may have..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>🛍️ Pick Products to Buy with This Booking (Optional)</label>
+          <div id="bookingProductPicker" class="booking-product-picker">
+            <div class="booking-product-empty">Products will load here...</div>
+          </div>
+          <small class="form-help-text-tight">Select any product(s) you want to buy from the store while booking your service.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="styleImage" data-i18n="booking_image">📸 Upload Style Reference Image (Optional)</label>
+          <input type="file" id="styleImage" accept="image/*" class="compact-file-input">
+          <small class="form-help-text-tight" data-i18n="booking_image_help">Upload a photo of the hairstyle you want. This helps our stylists understand your vision better.</small>
+          <div id="imagePreview" class="preview-space-top"></div>
+        </div>
+
+        <button type="submit" class="submit-btn" data-i18n="booking_submit">Book Appointment</button>
+      </form>
+      <div id="bookingMessage" class="message"></div>
+
+      <div id="payNowPanel" class="is-initially-hidden pay-now-panel">
+        <button id="payNowBtn" type="button" class="submit-btn">Pay Now</button>
+        <small id="payNowHint" class="form-help-text pay-now-hint">You will be redirected to a secure payment page.</small>
+
+        <div class="products-paystack hidden" id="paystackPaymentBlock">
+          <a id="paystackPaymentLink" class="paystack-pay-btn" href="#" target="_blank" rel="noopener">
+            💳 Pay with Paystack
+          </a>
+          <p class="products-paystack-hint" id="paystackPaymentHint">
+            Use this only if you were instructed to pay via a Paystack payment link.
+          </p>
+        </div>
+      </div>
+
+      <div id="bankPayPanel" class="is-initially-hidden panel-space-top">
+        <div class="bank-pay-card">
+          <h3 class="bank-pay-heading">Bank Transfer Payment</h3>
+          <p class="bank-pay-muted">Transfer the amount due to the salon account below and use the reference exactly as shown.</p>
+
+          <div class="bank-pay-grid">
+            <div>
+              <div class="bank-pay-label">Bank</div>
+              <div id="bankPayBank" class="bank-pay-value">—</div>
+            </div>
+            <div>
+              <div class="bank-pay-label">Account Number</div>
+              <div id="bankPayAccount" class="bank-pay-value">—</div>
+            </div>
+            <div>
+              <div class="bank-pay-label">Account Name</div>
+              <div id="bankPayName" class="bank-pay-value">—</div>
+            </div>
+            <div>
+              <div class="bank-pay-label">Amount Due Now</div>
+              <div id="bankPayAmount" class="bank-pay-value">—</div>
+            </div>
+            <div class="bank-pay-full-span">
+              <div class="bank-pay-label">Reference</div>
+              <div id="bankPayRef" class="bank-pay-ref">—</div>
+            </div>
+          </div>
+
+          <small class="bank-pay-muted">After payment, our team will validate your booking and contact you.</small>
+
+          <hr class="bank-pay-divider">
+          <h4 class="bank-pay-subheading">Upload Payment Receipt (Optional)</h4>
+          <p class="bank-pay-muted">After you transfer, upload your receipt (image or PDF) so we can confirm faster.</p>
+          <label for="paymentReceiptFile" class="bank-pay-label">Receipt File</label>
+          <input type="file" id="paymentReceiptFile" accept="image/*,application/pdf">
+          <button id="uploadReceiptBtn" type="button" class="submit-btn upload-receipt-btn">Upload Receipt</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tracking Section -->
+  <section id="track-booking" class="booking-section">
+    <div class="track-bg" aria-hidden="true">
+      <span class="track-bg__slide track-bg__slide--1"></span>
+      <span class="track-bg__slide track-bg__slide--2"></span>
+      <span class="track-bg__slide track-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2>Track Your Booking</h2>
+      <p class="section-subtitle">Enter your tracking code and booking email to check if your service is approved or rejected.</p>
+
+      <form id="trackBookingForm" class="booking-form">
+        <div class="form-group">
+          <label for="trackCode">Tracking Code *</label>
+          <input type="text" id="trackCode" placeholder="e.g. BOOK-ABC12345" required>
+        </div>
+
+        <div class="form-group">
+          <label for="trackEmail">Booking Email *</label>
+          <input type="email" id="trackEmail" placeholder="you@example.com" required>
+        </div>
+
+        <button type="submit" class="submit-btn">Check Booking Status</button>
+      </form>
+
+      <div id="trackMessage" class="message"></div>
+      <div id="trackResult"></div>
+    </div>
+  </section>
+
+  <section id="track-product-order" class="booking-section">
+    <div class="track-bg" aria-hidden="true">
+      <span class="track-bg__slide track-bg__slide--1"></span>
+      <span class="track-bg__slide track-bg__slide--2"></span>
+      <span class="track-bg__slide track-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2>Track Your Product Order</h2>
+      <p class="section-subtitle">Enter your product order code and order email to check delivery/approval status.</p>
+
+      <form id="trackProductForm" class="booking-form">
+        <div class="form-group">
+          <label for="trackProductCode">Product Order Code *</label>
+          <input type="text" id="trackProductCode" placeholder="e.g. ORD-MA4N7X2" required>
+        </div>
+
+        <div class="form-group">
+          <label for="trackProductEmail">Order Email *</label>
+          <input type="email" id="trackProductEmail" placeholder="you@example.com" required>
+        </div>
+
+        <button type="submit" class="submit-btn">Check Product Order Status</button>
+      </form>
+
+      <div id="trackProductMessage" class="message"></div>
+      <div id="trackProductResult"></div>
+    </div>
+  </section>
+
+  <!-- Gallery Section -->
+  <section id="gallery" class="gallery">
+    <div class="gallery-bg" aria-hidden="true">
+      <span class="gallery-bg__slide gallery-bg__slide--1"></span>
+      <span class="gallery-bg__slide gallery-bg__slide--2"></span>
+      <span class="gallery-bg__slide gallery-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2 data-i18n="gallery_title">Gallery</h2>
+      <p class="section-subtitle" data-i18n="gallery_subtitle">Our Portfolio</p>
+      
+      <div class="gallery-grid">
+        <div class="gallery-item">
+          <img src="/p1.webp" alt="Professional Hair Cuts">
+          <h3 data-i18n="gallery_haircuts">Professional Hair Cuts</h3>
+        </div>
+        <div class="gallery-item">
+          <img src="/p2.jpg" alt="Hair Color">
+          <h3 data-i18n="gallery_coloring">Hair Coloring</h3>
+        </div>
+        <div class="gallery-item">
+          <img src="/p3.jpg" alt="Facial">
+          <h3 data-i18n="gallery_facial">Facial Treatments</h3>
+        </div>
+        <div class="gallery-item">
+          <img src="/p4.jpg" alt="Nails">
+          <h3 data-i18n="gallery_nails">Nail Services</h3>
+        </div>
+        <div class="gallery-item">
+          <img src="/p5.jpg" alt="Massage">
+          <h3 data-i18n="gallery_relaxation">Relaxation Services</h3>
+        </div>
+        <div class="gallery-item">
+          <img src="/p6.jpg" alt="Professional Styling">
+          <h3 data-i18n="gallery_styling">Professional Styling</h3>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Team Section -->
+  <section id="team" class="team">
+    <div class="team-bg" aria-hidden="true">
+      <span class="team-bg__slide team-bg__slide--1"></span>
+      <span class="team-bg__slide team-bg__slide--2"></span>
+      <span class="team-bg__slide team-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2 data-i18n="team_title">Our Professional Team</h2>
+      <p class="section-subtitle" data-i18n="team_subtitle">Expert Stylists Dedicated to Your Beauty</p>
+      
+      <div class="team-grid">
+        <div class="team-member">
+          <img src="/images/female%20sytlsit%201.jpeg" alt="Chioma Eze - Senior Hair Stylist">
+          <h3>Chioma Eze</h3>
+          <p class="role" data-i18n="team_role_senior_stylist">Senior Hair Stylist</p>
+          <p class="bio" data-i18n="team_bio_15_years">15+ years of professional experience</p>
+        </div>
+        <div class="team-member">
+          <img src="/images/female%20stylsit%202.jpeg" alt="Amara Johnson - Color Specialist">
+          <h3>Amara Johnson</h3>
+          <p class="role" data-i18n="team_role_color_specialist">Color Specialist</p>
+          <p class="bio" data-i18n="team_bio_color_expert">Expert in hair coloring & treatments</p>
+        </div>
+        <div class="team-member">
+          <img src="/male-stylist.jpg" alt="Kola Adeyemi - Male Stylist" class="kola-photo">
+          <h3>Kola Adeyemi</h3>
+          <p class="role" data-i18n="team_role_master_barber">Master Barber</p>
+          <p class="bio" data-i18n="team_bio_precision_cuts">Precision cuts & grooming specialist</p>
+        </div>
+        <div class="team-member">
+          <img src="/images/female%20stylst%203.jpeg" alt="Ngozi Okonkwo - Beauty Therapist">
+          <h3>Ngozi Okonkwo</h3>
+          <p class="role" data-i18n="team_role_beauty_therapist">Beauty Therapist</p>
+          <p class="bio" data-i18n="team_bio_facial_wellness">Facial & wellness treatments expert</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section id="contact" class="contact">
+    <div class="contact-bg" aria-hidden="true">
+      <span class="contact-bg__slide contact-bg__slide--1"></span>
+      <span class="contact-bg__slide contact-bg__slide--2"></span>
+      <span class="contact-bg__slide contact-bg__slide--3"></span>
+    </div>
+    <div class="container">
+      <h2 data-i18n="contact_title">Get In Touch</h2>
+      <p class="section-subtitle" data-i18n="contact_subtitle">Send us a message</p>
+      
+      <div class="contact-content">
+        <form id="contactForm" class="contact-form">
+          <div class="form-group">
+            <label for="contactName"><span data-i18n="contact_name">Full Name</span> *</label>
+            <input type="text" id="contactName" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="contactEmail"><span data-i18n="contact_email">Email Address</span> *</label>
+            <input type="email" id="contactEmail" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="contactSubject"><span data-i18n="contact_subject">Subject</span> *</label>
+            <input type="text" id="contactSubject" required>
+          </div>
+
+          <div class="form-group">
+            <label for="customerCarePriority">Support Priority</label>
+            <select id="customerCarePriority">
+              <option value="normal" selected>Normal (within 24 hours)</option>
+              <option value="priority">Priority (within 4-8 hours)</option>
+              <option value="urgent">Urgent (same day attention)</option>
+            </select>
+            <small class="form-help-text-tight">Choose urgency so our customer care team can route your request faster.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="preferredContactChannel">Preferred Reply Channel</label>
+            <select id="preferredContactChannel">
+              <option value="email" selected>Email</option>
+              <option value="phone">Phone Call</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="contactMessageText"><span data-i18n="contact_message">Message</span> *</label>
+            <textarea id="contactMessageText" rows="5" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="reportType" data-i18n="contact_reporttype">Report Type (Optional)</label>
+            <select id="reportType">
+              <option value="" data-i18n="contact_general">General Message</option>
+              <option value="service_feedback" data-i18n="contact_feedback">Service Feedback Report</option>
+              <option value="complaint" data-i18n="contact_complaint">Complaint Report</option>
+              <option value="suggestion" data-i18n="contact_suggestion">Suggestion Report</option>
+              <option value="experience" data-i18n="contact_experience">Experience Report</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="reportFile" data-i18n="contact_file">📎 Attach Report Evidence/Images (Optional)</label>
+            <input type="file" id="reportFile" accept="image/*,.pdf,.doc,.docx" class="compact-file-input">
+            <small class="form-help-text-tight" data-i18n="contact_file_help">You can upload images, PDF, or documents as proof/evidence for your report.</small>
+            <div id="reportFilePreview" class="preview-space-top"></div>
+          </div>
+
+          <button type="submit" class="submit-btn" data-i18n="contact_submit">Send Message</button>
+        </form>
+        
+        <div class="contact-info">
+          <h3 data-i18n="contact_info_title">Contact Information</h3>
+          <p><strong data-i18n="contact_address">Address</strong>: 24 kfarm estate ikeja lagos state</p>
+          <p><strong data-i18n="contact_phone">Phone</strong>: 07036939125</p>
+          <p><strong data-i18n="contact_email_label">Email</strong>: okontaysm@gmail.com</p>
+          <p><strong data-i18n="contact_hours">Hours</strong>:</p>
+          <p data-i18n="contact_hours_weekday">Monday - Friday: 9:00 AM - 7:00 PM</p>
+          <p data-i18n="contact_hours_saturday">Saturday: 10:00 AM - 6:00 PM</p>
+          <p data-i18n="contact_hours_sunday">Sunday: Closed</p>
+
+          <div class="customer-care-panel" aria-label="Customer care desk">
+            <h4>Customer Care Desk</h4>
+            <p class="customer-care-panel__intro">Professional support for bookings, payments, complaints, and follow-up care.</p>
+            <div class="customer-care-actions">
+              <a href="tel:07036939125" class="customer-care-btn">📞 Call Support</a>
+              <a href="https://wa.me/2347036939125" target="_blank" rel="noopener" class="customer-care-btn customer-care-btn--wa">💬 WhatsApp Support</a>
+              <a href="mailto:okontaysm@gmail.com" class="customer-care-btn">✉️ Email Support</a>
+            </div>
+            <div class="customer-care-sla">
+              <span>Normal: &lt; 24 hrs</span>
+              <span>Priority: 4-8 hrs</span>
+              <span>Urgent: Same day</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="contactMessage" class="message"></div>
+      <div id="contactTicketRef" class="customer-ticket-ref" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- Admin Login/Register Modal -->
+  <div id="adminModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeAdminModal()">&times;</span>
+      
+      <div id="loginForm" class="auth-form">
+        <h3 data-i18n="admin_login">Admin Login</h3>
+        <form id="adminLoginForm">
+          <div class="form-group">
+            <label for="loginEmail"><span data-i18n="admin_email">Email Address</span> *</label>
+            <input type="email" id="loginEmail" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="loginPassword"><span data-i18n="admin_password">Password</span> *</label>
+            <input type="password" id="loginPassword" required>
+          </div>
+
+          <div class="form-group">
+            <label for="loginSecretPasscode">Admin Secret Passcode *</label>
+            <input type="password" id="loginSecretPasscode" required>
+            <small>Enter this passcode to login directly, or request an OTP that will be sent to your admin email.</small>
+          </div>
+
+          <div class="form-group">
+            <button type="button" class="submit-btn secondary-action-btn" id="requestAccessCodeBtn">Send One-Time Access Code (Email OTP)</button>
+            <label for="loginAccessCode">One-Time Access Code (Optional)</label>
+            <input type="text" id="loginAccessCode" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit code (optional)">
+          </div>
+
+          <div class="form-group">
+            <button type="button" class="admin-compact-toggle" id="showForgotPasswordBtn" aria-expanded="false">
+              <span id="forgotToggleLabel">Forgot password? Tap to reset</span>
+              <span id="forgotToggleIcon" aria-hidden="true">▾</span>
+            </button>
+            <small class="admin-auth-help">Keep this hidden unless you need to reset your password.</small>
+          </div>
+
+          <div class="form-group is-initially-hidden" id="forgotPasswordPanel">
+            <button type="button" class="submit-btn secondary-action-btn" id="requestPasswordResetCodeBtn">Send Password Reset OTP</button>
+            <label for="resetAccessCode">Reset OTP Code *</label>
+            <input type="text" id="resetAccessCode" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit OTP code">
+
+            <label for="resetNewPassword" class="form-label-spaced">New Password *</label>
+            <input type="password" id="resetNewPassword" placeholder="Enter new password (min 6 chars)">
+
+            <button type="button" class="submit-btn secondary-action-btn" id="resetPasswordBtn">Reset Password</button>
+          </div>
+
+          <small class="admin-auth-help">Tip: Use password + secret passcode for fastest login. OTP is optional.</small>
+          
+          <button type="submit" class="submit-btn" data-i18n="admin_login_btn">Login</button>
+        </form>
+        
+        <p class="toggle-text">
+          <span data-i18n="admin_no_account">Don't have an account?</span> <a href="#" onclick="toggleAuthForm()" data-i18n="admin_register_here">Register here</a>
+        </p>
+        <div id="loginMessage" class="message"></div>
+      </div>
+      
+      <div id="registerForm" class="auth-form is-initially-hidden">
+        <h3 data-i18n="admin_register">Admin Registration</h3>
+        <form id="adminRegisterForm">
+          <div class="form-group">
+            <label for="registerName"><span data-i18n="admin_name">Full Name</span> *</label>
+            <input type="text" id="registerName" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="registerEmail"><span data-i18n="admin_email">Email Address</span> *</label>
+            <input type="email" id="registerEmail" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="registerPassword"><span data-i18n="admin_password">Password</span> *</label>
+            <input type="password" id="registerPassword" required>
+          </div>
+
+          <div class="form-group">
+            <label for="registerSecretPasscode">Admin Secret Passcode *</label>
+            <input type="password" id="registerSecretPasscode" required>
+            <small>Required for one-time initial admin registration.</small>
+          </div>
+          
+          <button type="submit" class="submit-btn" data-i18n="admin_register_btn">Register</button>
+        </form>
+        
+        <p class="toggle-text">
+          <span data-i18n="admin_have_account">Already have an account?</span> <a href="#" onclick="toggleAuthForm()" data-i18n="admin_login_here">Login here</a>
+        </p>
+        <div id="registerMessage" class="message"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-bg" aria-hidden="true">
+      <span class="footer-bg__slide footer-bg__slide--1"></span>
+      <span class="footer-bg__slide footer-bg__slide--2"></span>
+      <span class="footer-bg__slide footer-bg__slide--3"></span>
+    </div>
+    <div class="footer-sparkle" aria-hidden="true"></div>
+    <div class="container">
+      <div class="footer-glass">
+        <p data-i18n="footer_copyright">&copy; 2024 CEO UNISEX SALON. All rights reserved.</p>
+        <p data-i18n="footer_tagline">Professional Hair & Beauty Services | Lagos, Nigeria</p>
+      </div>
+    </div>
+  </footer>
+
+  <div id="floatingBookBar" class="floating-book-bar" aria-hidden="true">
+    <div class="floating-book-bar__inner">
+      <span class="floating-book-bar__text">✨ Ready for your glow-up?</span>
+      <span id="floatingUrgencyChip" class="floating-book-bar__chip" aria-live="polite">Est. slots today: --</span>
+      <button id="floatingBookNowBtn" type="button" class="floating-book-bar__btn">Book now</button>
+    </div>
+  </div>
+
+  <div class="quick-contact-dock" aria-label="Quick contact actions">
+    <a href="tel:07036939125" class="quick-contact-dock__btn" aria-label="Call CEO Unisex Salon">📞 Call</a>
+    <a href="https://wa.me/2347036939125" target="_blank" rel="noopener" class="quick-contact-dock__btn quick-contact-dock__btn--wa" aria-label="Chat with CEO Unisex Salon on WhatsApp">💬 WhatsApp</a>
+    <a href="#booking" class="quick-contact-dock__btn" aria-label="Go to booking form">📅 Book</a>
+  </div>
+
+  <!-- Language Selection Modal -->
+  <div id="languageModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeLanguageModal()">&times;</span>
+      <h3>🌍 Select Your Language <br><small>Choose your preferred language</small></h3>
+      <div class="language-selector">
+        <button class="lang-btn" onclick="setLanguageAndClose('en')">
+          <span class="lang-flag">🇺🇸</span>
+          <span class="lang-name">English</span>
+        </button>
+        <button class="lang-btn" onclick="setLanguageAndClose('es')">
+          <span class="lang-flag">🇪🇸</span>
+          <span class="lang-name">Español</span>
+        </button>
+        <button class="lang-btn" onclick="setLanguageAndClose('fr')">
+          <span class="lang-flag">🇫🇷</span>
+          <span class="lang-name">Français</span>
+        </button>
+        <button class="lang-btn" onclick="setLanguageAndClose('de')">
+          <span class="lang-flag">🇩🇪</span>
+          <span class="lang-name">Deutsch</span>
+        </button>
+        <div class="language-group-label">Nigerian Languages</div>
+        <button class="lang-btn" onclick="setLanguageAndClose('yo')">
+          <span class="lang-flag">🇳🇬</span>
+          <span class="lang-name">Yorùbá</span>
+        </button>
+        <button class="lang-btn" onclick="setLanguageAndClose('ha')">
+          <span class="lang-flag">🇳🇬</span>
+          <span class="lang-name">Hausa</span>
+        </button>
+        <button class="lang-btn" onclick="setLanguageAndClose('ig')">
+          <span class="lang-flag">🇳🇬</span>
+          <span class="lang-name">Igbo</span>
+        </button>
+        <button class="lang-btn" onclick="setLanguageAndClose('pcm')">
+          <span class="lang-flag">🇳🇬</span>
+          <span class="lang-name">Pidgin</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/languages.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
