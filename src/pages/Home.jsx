@@ -153,9 +153,9 @@ export default function Home() {
                 Premium care / Smart booking / Live tracking
               </div>
               <div className="space-y-4">
-                <img alt="CEO Unisex Salon" className="h-14 w-14" src="/images/logo.svg" />
+                <img alt="Aura Salon" className="h-14 w-14" src="/images/logo.svg" />
                 <h1 className="max-w-4xl font-display text-5xl leading-[0.9] sm:text-7xl lg:text-8xl">
-                  CEO Unisex Salon
+                  Aura Salon
                 </h1>
                 <p className="text-lg font-semibold text-brand-soft sm:text-xl">Where beauty meets excellence</p>
                 <p className="max-w-2xl text-sm leading-7 text-white/78 sm:text-base">
@@ -569,7 +569,7 @@ export default function Home() {
         />
         <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr_0.8fr]">
           <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-soft">CEO Unisex Salon</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-soft">Aura Salon</p>
             <h2 className="font-display text-5xl leading-none">Professional hair and beauty services in Lagos.</h2>
             <p className="max-w-xl text-sm leading-7 text-white/72">
               The homepage has been rebuilt in React and Tailwind, with booking, product orders, tracking, and contact

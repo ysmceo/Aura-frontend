@@ -99,11 +99,11 @@ export function MarketingHeader({ links, primaryAction, secondaryAction, compact
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
           <Link className="flex min-w-0 flex-1 items-center gap-3" onClick={() => setMenuOpen(false)} to="/">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-night text-white shadow-[0_14px_30px_rgba(31,41,55,0.18)]">
-              <img alt="CEO Unisex Salon" className="h-7 w-7" src="/images/logo.svg" />
+              <img alt="Aura Salon" className="h-7 w-7" src="/images/logo.svg" />
             </span>
             <span className="min-w-0">
               <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-brand-deep/75">
-                CEO Unisex Salon
+                Aura Salon
               </span>
               <span className="block truncate font-display text-[1.65rem] leading-none text-ink sm:text-2xl">
                 {compact ? "Guest Services" : "Beauty Meets Excellence"}

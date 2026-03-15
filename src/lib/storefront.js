@@ -47,7 +47,7 @@ export function resolveMediaSrc(source) {
     return value;
   }
 
-  if (/^\/?uploads\//i.test(value)) {
+  if (/^\/?uploads\//i.test(value) || /^\/?images\//i.test(value)) {
     return encodeURI(resolveBackendAssetUrl(value.startsWith("/") ? value : `/${value}`));
   }
 

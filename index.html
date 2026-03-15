@@ -6,13 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="CEO Unisex Salon offers professional hair, beauty, grooming, bookings, and product delivery services in Lagos."
+      content="Aura Salon offers professional hair, beauty, grooming, bookings, and product delivery services in Lagos."
     />
-    <title>CEO UNISEX SALON</title>
+    <title>Aura Salon</title>
     <script>
       (() => {
-        const storageKey = "ceo-salon-theme";
-        const storedTheme = window.localStorage.getItem(storageKey);
+        const storageKey = "aura-salon-theme";
+        const legacyStorageKey = "ceo-salon-theme";
+        const storedTheme =
+          window.localStorage.getItem(storageKey) ??
+          window.localStorage.getItem(legacyStorageKey);
+
+        if (
+          !window.localStorage.getItem(storageKey) &&
+          (storedTheme === "light" || storedTheme === "dark")
+        ) {
+          window.localStorage.setItem(storageKey, storedTheme);
+        }
+
+        window.localStorage.removeItem(legacyStorageKey);
         const theme =
           storedTheme === "light" || storedTheme === "dark"
             ? storedTheme

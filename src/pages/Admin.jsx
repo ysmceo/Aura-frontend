@@ -95,6 +95,36 @@ function todayDateKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatRelativeTime(value) {
+  const date = new Date(String(value || ""));
+  if (Number.isNaN(date.getTime())) return "just now";
+
+  const now = Date.now();
+  const diffMs = date.getTime() - now;
+  const isFuture = diffMs > 0;
+  const absMs = Math.abs(diffMs);
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (absMs < minute) {
+    return "just now";
+  }
+
+  if (absMs < hour) {
+    const minutes = Math.round(absMs / minute);
+    return isFuture ? `in ${minutes} min${minutes === 1 ? "" : "s"}` : `${minutes} min${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  if (absMs < day) {
+    const hours = Math.round(absMs / hour);
+    return isFuture ? `in ${hours} hour${hours === 1 ? "" : "s"}` : `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.round(absMs / day);
+  return isFuture ? `in ${days} day${days === 1 ? "" : "s"}` : `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 function normalizeMessageReportType(value) {
   return String(value || "general_message").trim().toLowerCase();
 }
@@ -752,8 +782,8 @@ export default function Admin() {
   function getBookingReplyDefaults(booking) {
     const customerName = String(booking?.name || "Customer");
     return {
-      subject: `Booking follow-up from CEO Unisex Salon`,
-      message: `Hello ${customerName},\n\nThank you for your booking. This is an update regarding your appointment.\n\nBest regards,\nCEO Unisex Salon`
+        subject: `Booking follow-up from Aura Salon`,
+        message: `Hello ${customerName},\n\nThank you for your booking. This is an update regarding your appointment.\n\nBest regards,\nAura Salon`
     };
   }
 
@@ -764,7 +794,7 @@ export default function Admin() {
     const when = `${String(booking?.date || "").trim()} ${String(booking?.time || "").trim()}`.trim() || "your scheduled time";
     return {
       subject: `Reschedule request${bookingId ? ` (${bookingId})` : ""}`,
-      message: `Hello ${customerName},\n\nWe need to reschedule ${serviceName} that was planned for ${when}.\n\nPlease reply with your preferred new date and time so we can confirm your next appointment.\n\nBest regards,\nCEO Unisex Salon`
+        message: `Hello ${customerName},\n\nWe need to reschedule ${serviceName} that was planned for ${when}.\n\nPlease reply with your preferred new date and time so we can confirm your next appointment.\n\nBest regards,\nAura Salon`
     };
   }
 
@@ -774,7 +804,7 @@ export default function Admin() {
     const when = `${String(booking?.date || "").trim()} ${String(booking?.time || "").trim()}`.trim() || "your scheduled time";
     return {
       subject: `Appointment reminder - ${when}`,
-      message: `Hello ${customerName},\n\nThis is a friendly reminder for your ${serviceName} appointment scheduled for ${when}.\n\nIf you need to adjust your schedule, kindly reply to this email as soon as possible.\n\nWe look forward to seeing you.\n\nBest regards,\nCEO Unisex Salon`
+        message: `Hello ${customerName},\n\nThis is a friendly reminder for your ${serviceName} appointment scheduled for ${when}.\n\nIf you need to adjust your schedule, kindly reply to this email as soon as possible.\n\nWe look forward to seeing you.\n\nBest regards,\nAura Salon`
     };
   }
 
@@ -855,8 +885,8 @@ export default function Admin() {
     const customerName = String(order?.name || "Customer");
     const orderCode = String(order?.orderCode || order?.id || "").trim();
     return {
-      subject: `Order update from CEO Unisex Salon${orderCode ? ` (${orderCode})` : ""}`,
-      message: `Hello ${customerName},\n\nThank you for your order. This is an update regarding your order status and fulfilment.\n\nBest regards,\nCEO Unisex Salon`
+        subject: `Order update from Aura Salon${orderCode ? ` (${orderCode})` : ""}`,
+        message: `Hello ${customerName},\n\nThank you for your order. This is an update regarding your order status and fulfilment.\n\nBest regards,\nAura Salon`
     };
   }
 
@@ -866,7 +896,7 @@ export default function Admin() {
     const total = Number(order?.totalAmount || 0);
     return {
       subject: `Delivery update${orderCode ? ` (${orderCode})` : ""}`,
-      message: `Hello ${customerName},\n\nYour order${orderCode ? ` (${orderCode})` : ""} is currently in delivery processing.\n\nOrder total: ${formatCurrency(total)}\n\nWe will notify you again as soon as it is out for delivery or delivered.\n\nBest regards,\nCEO Unisex Salon`
+        message: `Hello ${customerName},\n\nYour order${orderCode ? ` (${orderCode})` : ""} is currently in delivery processing.\n\nOrder total: ${formatCurrency(total)}\n\nWe will notify you again as soon as it is out for delivery or delivered.\n\nBest regards,\nAura Salon`
     };
   }
 
@@ -933,7 +963,7 @@ export default function Admin() {
   function getMessageReplyDefaults(item) {
     return {
       subject: `Re: ${String(item?.subject || "Your message").trim()}`,
-      message: `Hello ${String(item?.name || "Customer")},\n\nThank you for your message. We have reviewed your complaint/inquiry and will support you promptly.\n\nBest regards,\nCEO Unisex Salon`
+        message: `Hello ${String(item?.name || "Customer")},\n\nThank you for your message. We have reviewed your complaint/inquiry and will support you promptly.\n\nBest regards,\nAura Salon`
     };
   }
 
@@ -1350,7 +1380,7 @@ export default function Admin() {
       ? `mailto:${emailAddress}?subject=${encodeURIComponent(`Booking update ${bookingCode ? `(${bookingCode})` : ""}`.trim())}`
       : "";
     const whatsappDigits = String(item.phone || "").replace(/\D/g, "");
-    const whatsappMessage = encodeURIComponent(`Hello ${String(item.name || "")}, this is CEO Unisex Salon regarding your booking (${String(item.id || "")}).`);
+    const whatsappMessage = encodeURIComponent(`Hello ${String(item.name || "")}, this is Aura Salon regarding your booking (${String(item.id || "")}).`);
     const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${whatsappMessage}` : "";
 
     return (
@@ -1517,7 +1547,7 @@ export default function Admin() {
       ? `mailto:${emailAddress}?subject=${encodeURIComponent(`Order update ${orderCode ? `(${orderCode})` : ""}`.trim())}`
       : "";
     const whatsappDigits = String(item?.phone || "").replace(/\D/g, "");
-    const whatsappMessage = encodeURIComponent(`Hello ${String(item?.name || "")}, this is CEO Unisex Salon regarding your order (${orderCode}).`);
+    const whatsappMessage = encodeURIComponent(`Hello ${String(item?.name || "")}, this is Aura Salon regarding your order (${orderCode}).`);
     const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${whatsappMessage}` : "";
 
     if (!callHref && !emailHref && !whatsappHref) {
@@ -1636,20 +1666,47 @@ export default function Admin() {
     setActivePanel("products");
   }
 
-  function updateBookingAssignment(bookingId, field, value) {
+  function updateBookingAssignment(item, field, value) {
+    const bookingId = String(item?.id || "").trim();
     const normalizedId = String(bookingId || "").trim();
     if (!normalizedId) return;
 
-    setBookingAssignments((prev) => ({
-      ...prev,
-      [normalizedId]: {
-        ...(prev[normalizedId] || {}),
+    const bookingStatus = String(item?.status || "").trim().toLowerCase();
+
+    let shouldAutoNotify = false;
+    let nextAssignmentSnapshot = null;
+
+    setBookingAssignments((prev) => {
+      const previousAssignment = prev[normalizedId] || {};
+      const nextAssignment = {
+        ...previousAssignment,
         [field]: value
-      }
-    }));
+      };
+
+      const hadCompleteAssignment = Boolean(
+        String(previousAssignment?.staff || "").trim() &&
+          String(previousAssignment?.chair || "").trim()
+      );
+      const nowHasCompleteAssignment = Boolean(
+        String(nextAssignment?.staff || "").trim() &&
+          String(nextAssignment?.chair || "").trim()
+      );
+
+      shouldAutoNotify = ["pending", "new"].includes(bookingStatus) && !hadCompleteAssignment && nowHasCompleteAssignment;
+      nextAssignmentSnapshot = nextAssignment;
+
+      return {
+        ...prev,
+        [normalizedId]: nextAssignment
+      };
+    });
+
+    if (shouldAutoNotify && nextAssignmentSnapshot) {
+      notifyBookingAssignment(item, nextAssignmentSnapshot);
+    }
   }
 
-  async function notifyBookingAssignment(item) {
+  async function notifyBookingAssignment(item, assignmentOverride = null) {
     const bookingId = String(item?.id || "").trim();
     if (!bookingId) return;
 
@@ -1658,7 +1715,9 @@ export default function Admin() {
       return;
     }
 
-    const assignment = bookingAssignments[bookingId] || {};
+    const assignment = assignmentOverride && typeof assignmentOverride === "object"
+      ? assignmentOverride
+      : (bookingAssignments[bookingId] || {});
     const staff = String(assignment?.staff || "").trim();
     const chair = String(assignment?.chair || "").trim();
     const date = String(item?.date || operationsDate || "").trim();
@@ -1730,10 +1789,13 @@ export default function Admin() {
       const emailNotice = response?.notifications?.email?.sent
         ? "Email sent"
         : `Email: ${String(response?.notifications?.email?.reason || "not sent")}`;
+      const approvalNotice = response?.autoApproved
+        ? "Booking moved from Pending to Approved."
+        : "Booking assignment updated.";
 
       setDashboardNotice({
         tone: "success",
-        message: `Assignment shared with ${String(item?.name || "customer")}. ${smsNotice}. ${emailNotice}.`
+        message: `${approvalNotice} Assignment shared with ${String(item?.name || "customer")}. ${smsNotice}. ${emailNotice}.`
       });
     } catch (error) {
       setDashboardNotice({ tone: "error", message: getErrorMessage(error) });
@@ -2153,6 +2215,13 @@ export default function Admin() {
                     const notifyBusy = Boolean(assignmentNotifyBusyByBookingId[String(item.id) || ""]);
                     const isRecentlyApproved = Boolean(recentlyApprovedBookingIds[String(item.id) || ""]);
                     const bookingStatus = String(item?.status || "").trim().toLowerCase();
+                    const hasAutoActionBadge = Boolean(item?.lastAssignment?.autoApproved);
+                    const autoApprovedAtLabel = hasAutoActionBadge && item?.lastAssignment?.autoApprovedAt
+                      ? new Date(String(item.lastAssignment.autoApprovedAt)).toLocaleString()
+                      : "";
+                    const autoApprovedRelativeLabel = hasAutoActionBadge && item?.lastAssignment?.autoApprovedAt
+                      ? formatRelativeTime(item.lastAssignment.autoApprovedAt)
+                      : "";
                     return (
                       <div
                         key={`ops-booking-${item.id}`}
@@ -2162,14 +2231,26 @@ export default function Admin() {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-ink">{item.time || "--:--"} · {item.name || "Customer"}</p>
-                          <StatusPill value={item.status || "pending"} />
+                          <div className="flex flex-wrap items-center gap-2">
+                            {hasAutoActionBadge ? (
+                              <span className="inline-flex rounded-full border border-success/35 bg-success/15 px-2 py-1 text-[10px] font-semibold tracking-[0.08em] text-success">
+                                AUTO ACTION PERFORMED
+                              </span>
+                            ) : null}
+                            <StatusPill value={item.status || "pending"} />
+                          </div>
                         </div>
                         <p className="mt-1 text-xs text-ink-soft">{item.serviceName || "Service"} · {item.phone || item.email || "No contact"}</p>
+                        {hasAutoActionBadge && autoApprovedAtLabel ? (
+                          <p className="mt-1 text-[11px] text-success/85" title={`Auto-approved at ${autoApprovedAtLabel}`}>
+                            Auto-approved {autoApprovedRelativeLabel || "just now"}
+                          </p>
+                        ) : null}
                         <div className="mt-2 grid gap-2 sm:grid-cols-2">
                           <select
                             className="h-10 rounded-xl border border-line bg-panel/92 px-3 text-xs text-ink"
                             value={assignment.staff || ""}
-                            onChange={(event) => updateBookingAssignment(item.id, "staff", event.target.value)}
+                            onChange={(event) => updateBookingAssignment(item, "staff", event.target.value)}
                           >
                             <option value="">Assign staff</option>
                             {operationsStaffOptions.map((staff) => (
@@ -2179,7 +2260,7 @@ export default function Admin() {
                           <select
                             className="h-10 rounded-xl border border-line bg-panel/92 px-3 text-xs text-ink"
                             value={assignment.chair || ""}
-                            onChange={(event) => updateBookingAssignment(item.id, "chair", event.target.value)}
+                            onChange={(event) => updateBookingAssignment(item, "chair", event.target.value)}
                           >
                             <option value="">Assign chair</option>
                             {Array.from({ length: Math.max(1, operationsChairCapacity) }, (_, index) => index + 1).map((chairNo) => (
@@ -2208,10 +2289,15 @@ export default function Admin() {
                             {notifyBusy
                               ? "Sending notice..."
                               : ["pending", "new"].includes(bookingStatus)
-                                ? "Notify + Approve"
-                                : "Notify customer"}
+                                ? "Assign + Notify + Approve"
+                                : "Assign + Notify"}
                           </Button>
                         </div>
+                        {["pending", "new"].includes(bookingStatus) ? (
+                          <p className="mt-2 text-[11px] text-ink-soft">
+                            Tip: selecting both staff and chair auto-runs Assign + Notify + Approve.
+                          </p>
+                        ) : null}
                       </div>
                     );
                   })

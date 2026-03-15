@@ -1,7 +1,7 @@
 {
-  "name": "CEO UNISEX SALON",
-  "short_name": "CEO Salon",
-  "description": "CEO UNISEX SALON - Booking, services, and products",
+  "name": "Aura Salon",
+  "short_name": "Aura",
+  "description": "Aura Salon - Booking, services, and products",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

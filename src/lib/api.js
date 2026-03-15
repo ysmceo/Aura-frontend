@@ -41,8 +41,41 @@ function rememberSuccessfulApiOrigin(urlValue) {
   }
 }
 
+function getLocalhostPortFromApiBase() {
+  try {
+    if (!API_BASE_URL) {
+      return null;
+    }
+
+    const parsed = new URL(API_BASE_URL);
+    const host = String(parsed.hostname || "").toLowerCase();
+
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return null;
+    }
+
+    const explicitPort = Number(parsed.port || 0);
+
+    if (explicitPort > 0) {
+      return explicitPort;
+    }
+
+    if (parsed.protocol === "http:") {
+      return 80;
+    }
+
+    if (parsed.protocol === "https:") {
+      return 443;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function buildLocalApiFallbackUrls(pathname) {
-  if (API_BASE_URL || !canUseWindow()) {
+  if (!canUseWindow()) {
     return [];
   }
 
@@ -53,7 +86,12 @@ function buildLocalApiFallbackUrls(pathname) {
     return [];
   }
 
-  return [3000, 3002, 3001, 3100].map((port) => `http://localhost:${port}${pathname}`);
+  const configuredLocalPort = getLocalhostPortFromApiBase();
+  const candidatePorts = [configuredLocalPort, 3000, 3002, 3001, 3100]
+    .filter((port) => Number.isInteger(port) && Number(port) > 0)
+    .filter((port, index, all) => all.indexOf(port) === index);
+
+  return candidatePorts.map((port) => `http://localhost:${port}${pathname}`);
 }
 
 export function resolveApiUrl(pathname) {
