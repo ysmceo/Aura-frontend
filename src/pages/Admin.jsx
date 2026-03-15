@@ -154,6 +154,14 @@ function resolveWeatherLabel(code) {
   return WEATHER_CODE_LABELS[Number(code)] || "Weather update";
 }
 
+function normalizeWhatsAppNumber(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("234")) return digits;
+  if (digits.startsWith("0")) return `234${digits.slice(1)}`;
+  return digits;
+}
+
 function escapeCsv(value) {
   const text = String(value ?? "");
   if (text.includes(",") || text.includes("\n") || text.includes("\"")) {
@@ -209,9 +217,13 @@ export default function Admin() {
   const [registrationOpen, setRegistrationOpen] = useState(false);
   const [authNotice, setAuthNotice] = useState(null);
   const [dashboardNotice, setDashboardNotice] = useState(null);
+  const [moderationNotice, setModerationNotice] = useState(null);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [savingFees, setSavingFees] = useState(false);
+  const [adminIdentity, setAdminIdentity] = useState(null);
+  const [moderationAuditLogs, setModerationAuditLogs] = useState([]);
+  const [loadingModerationAudit, setLoadingModerationAudit] = useState(false);
   const [dashboard, setDashboard] = useState({ bookings: [], orders: [], messages: [], products: [], fees: { standard: 0, express: 0 } });
   const [login, setLogin] = useState({ email: "", password: "", oneTimeCode: "", secretPasscode: "" });
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -298,6 +310,59 @@ export default function Admin() {
         setToken("");
         if (typeof window !== "undefined") window.localStorage.removeItem(TOKEN_KEY);
       });
+  }, [token]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadAdminModerationContext() {
+      if (!token) {
+        if (!active) return;
+        setAdminIdentity(null);
+        setModerationAuditLogs([]);
+        setLoadingModerationAudit(false);
+        setModerationNotice(null);
+        return;
+      }
+
+      try {
+        const verifyResponse = await apiPost("/api/admin/verify", { token }, { token });
+        if (!active) return;
+
+        const nextAdmin = verifyResponse && verifyResponse.admin ? verifyResponse.admin : null;
+        setAdminIdentity(nextAdmin);
+
+        const normalizedRole = String(nextAdmin?.role || "").trim().toLowerCase();
+        const canViewAudit = normalizedRole === "super-admin";
+
+        if (!canViewAudit) {
+          setModerationAuditLogs([]);
+          setLoadingModerationAudit(false);
+          setModerationNotice(null);
+          return;
+        }
+
+        setLoadingModerationAudit(true);
+        const auditResponse = await apiGet("/api/admin/audit-logs?limit=40", { token });
+        if (!active) return;
+
+        setModerationAuditLogs(Array.isArray(auditResponse?.logs) ? auditResponse.logs : []);
+        setModerationNotice(null);
+      } catch (error) {
+        if (!active) return;
+        setModerationAuditLogs([]);
+        setModerationNotice({ tone: "error", message: getErrorMessage(error) });
+      } finally {
+        if (active) {
+          setLoadingModerationAudit(false);
+        }
+      }
+    }
+
+    loadAdminModerationContext();
+    return () => {
+      active = false;
+    };
   }, [token]);
 
   useEffect(() => {
@@ -872,8 +937,12 @@ export default function Admin() {
     }
 
     try {
-      await apiPost(`/api/admin/bookings/${encodeURIComponent(bookingId)}/reply`, { subject, message }, { token });
-      setDashboardNotice({ tone: "success", message: `Reply sent to ${booking.email || booking.name || "customer"}.` });
+      const response = await apiPost(`/api/admin/bookings/${encodeURIComponent(bookingId)}/reply`, { subject, message }, { token });
+      const delivery = response?.delivery;
+      const deliverySuffix = delivery?.sent
+        ? ""
+        : ` Reply saved in admin history${delivery?.reason ? ` (${String(delivery.reason)})` : ""}.`;
+      setDashboardNotice({ tone: "success", message: `Reply processed for ${booking.email || booking.name || "customer"}.${deliverySuffix}` });
       setActiveBookingReplyId(null);
       await refreshDashboard();
     } catch (error) {
@@ -951,8 +1020,12 @@ export default function Admin() {
     }
 
     try {
-      await apiPost(`/api/admin/product-orders/${encodeURIComponent(orderId)}/reply`, { subject, message }, { token });
-      setDashboardNotice({ tone: "success", message: `Reply sent to ${order.email || order.name || "customer"}.` });
+      const response = await apiPost(`/api/admin/product-orders/${encodeURIComponent(orderId)}/reply`, { subject, message }, { token });
+      const delivery = response?.delivery;
+      const deliverySuffix = delivery?.sent
+        ? ""
+        : ` Reply saved in admin history${delivery?.reason ? ` (${String(delivery.reason)})` : ""}.`;
+      setDashboardNotice({ tone: "success", message: `Reply processed for ${order.email || order.name || "customer"}.${deliverySuffix}` });
       setActiveOrderReplyId(null);
       await refreshDashboard();
     } catch (error) {
@@ -1351,6 +1424,15 @@ export default function Admin() {
 
   const selectedBookingCount = selectedBookingIds.length;
   const selectedOrderCount = selectedOrderIds.length;
+  const adminRole = String(adminIdentity?.role || "ops").trim().toLowerCase() || "ops";
+  const canViewModerationAudit = adminRole === "super-admin";
+  const moderationActivityCount = useMemo(
+    () => moderationAuditLogs.filter((item) => {
+      const action = String(item?.action || "").toLowerCase();
+      return action.includes("reply") || action.includes("message") || action.includes("booking") || action.includes("order");
+    }).length,
+    [moderationAuditLogs]
+  );
   const activePanelTitle = ADMIN_PANEL_CONFIG.find((item) => item.key === activePanel)?.title || "None";
   const getPanelButtonClass = (panel) => `text-left rounded-[1.2rem] transition-all duration-200 ${activePanel === panel
     ? "scale-[1.01] ring-2 ring-brand/70 shadow-lg shadow-brand/20"
@@ -1379,7 +1461,7 @@ export default function Admin() {
     const emailHref = emailAddress
       ? `mailto:${emailAddress}?subject=${encodeURIComponent(`Booking update ${bookingCode ? `(${bookingCode})` : ""}`.trim())}`
       : "";
-    const whatsappDigits = String(item.phone || "").replace(/\D/g, "");
+    const whatsappDigits = normalizeWhatsAppNumber(item.phone);
     const whatsappMessage = encodeURIComponent(`Hello ${String(item.name || "")}, this is Aura Salon regarding your booking (${String(item.id || "")}).`);
     const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${whatsappMessage}` : "";
 
@@ -1546,7 +1628,7 @@ export default function Admin() {
     const emailHref = emailAddress
       ? `mailto:${emailAddress}?subject=${encodeURIComponent(`Order update ${orderCode ? `(${orderCode})` : ""}`.trim())}`
       : "";
-    const whatsappDigits = String(item?.phone || "").replace(/\D/g, "");
+    const whatsappDigits = normalizeWhatsAppNumber(item?.phone);
     const whatsappMessage = encodeURIComponent(`Hello ${String(item?.name || "")}, this is Aura Salon regarding your order (${orderCode}).`);
     const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${whatsappMessage}` : "";
 
@@ -2070,30 +2152,25 @@ export default function Admin() {
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-line/70 bg-panel/90 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">Date</p>
-            <p className="mt-2 text-lg font-semibold text-ink">{adminNow.toLocaleDateString()}</p>
-          </div>
-          <div className="rounded-2xl border border-line/70 bg-panel/90 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">Time</p>
-            <p className="mt-2 text-lg font-semibold text-ink">{adminNow.toLocaleTimeString()}</p>
-          </div>
-          <div className="rounded-2xl border border-line/70 bg-panel/90 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">Weather (Lagos)</p>
-            <p className="mt-2 text-lg font-semibold text-ink">
+        <div className="rounded-2xl border border-white/45 bg-linear-to-r from-panel/96 via-panel/90 to-panel-strong/80 px-4 py-3 shadow-lg shadow-brand/8 backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="inline-flex rounded-full border border-brand/30 bg-brand-light/20 px-3 py-1 font-semibold uppercase tracking-[0.16em] text-brand-deep">Executive brief</span>
+            <span className="rounded-full border border-line/60 bg-panel-strong/70 px-3 py-1 font-semibold text-ink">{adminNow.toLocaleDateString()}</span>
+            <span className="rounded-full border border-line/60 bg-panel-strong/70 px-3 py-1 font-semibold text-ink">{adminNow.toLocaleTimeString()}</span>
+            <span className="rounded-full border border-line/60 bg-panel-strong/70 px-3 py-1 font-semibold text-ink">
               {adminWeather.loading
-                ? "Loading..."
+                ? "Weather loading..."
                 : adminWeather.temperature != null
                   ? `${Math.round(adminWeather.temperature)}°C · ${adminWeather.label}`
                   : adminWeather.label}
-            </p>
+            </span>
           </div>
         </div>
 
         <Notice tone={dashboardNotice?.tone} message={dashboardNotice?.message} />
+        <Notice tone={moderationNotice?.tone} message={moderationNotice?.message} />
 
-        <div className="grid items-start gap-5 xl:grid-cols-[248px_minmax(0,1fr)_308px]">
+        <div className="grid items-start gap-4 xl:grid-cols-[236px_minmax(0,1fr)_274px]">
           <Surface className="h-fit space-y-4 border-white/35 bg-panel/90 shadow-xl backdrop-blur-md xl:sticky xl:top-5">
             <SectionHeading
               eyebrow="Admin nav"
@@ -2219,66 +2296,99 @@ export default function Admin() {
             </div>
           </Surface>
 
-          <Surface className="h-fit space-y-4 border-white/35 bg-panel/90 shadow-xl backdrop-blur-md xl:sticky xl:top-5">
+          <Surface className="h-fit space-y-3 border-white/40 bg-linear-to-b from-panel/95 to-panel/88 shadow-xl shadow-brand/10 backdrop-blur-md xl:sticky xl:top-4">
             <SectionHeading
               eyebrow="Insights"
               title="Right rail"
-              description="Health, weather, and customer relationship pulse."
+              description="Compact executive pulse for quick decisions."
             />
-            <div className="space-y-2 rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Now</p>
-              <p className="text-sm font-semibold text-ink">{adminNow.toLocaleDateString()}</p>
-              <p className="text-sm text-ink-soft">{adminNow.toLocaleTimeString()}</p>
-            </div>
-            <div className="space-y-2 rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Weather · Lagos</p>
-              <p className="text-sm font-semibold text-ink">
+            <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Access</p>
+              <p className="mt-1 text-sm font-semibold text-ink">{adminIdentity?.name || "Admin"}</p>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-ink-soft">{adminRole.replace(/-/g, " ")} · {adminNow.toLocaleTimeString()}</p>
+              <p className="mt-2 text-[11px] text-ink-soft">
                 {adminWeather.loading
-                  ? "Loading..."
+                  ? "Weather loading..."
                   : adminWeather.temperature != null
                     ? `${Math.round(adminWeather.temperature)}°C · ${adminWeather.label}`
                     : adminWeather.label}
               </p>
             </div>
-            <div className="space-y-2 rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Queue health</p>
-              <p className={`text-sm font-semibold ${executiveHealthSignal.tone}`}>{executiveHealthSignal.label}</p>
-              <p className="text-xs text-ink-soft">Overdue (&gt;24h): {overduePendingCount}</p>
+
+            <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Operations pulse</p>
+                <span className={`text-xs font-semibold ${executiveHealthSignal.tone}`}>{executiveHealthSignal.label}</span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg border border-line/70 bg-panel/95 px-2 py-1.5">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-ink-soft">Overdue</p>
+                  <p className="text-sm font-semibold text-ink">{overduePendingCount}</p>
+                </div>
+                <div className="rounded-lg border border-line/70 bg-panel/95 px-2 py-1.5">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-ink-soft">Auto mode</p>
+                  <p className="text-sm font-semibold text-ink">{autoRefreshEnabled ? "On" : "Off"}</p>
+                </div>
+              </div>
+              <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-ink-soft">
+                <Users className="h-3.5 w-3.5" />
+                {autoRefreshEnabled ? "Auto refresh enabled" : "Manual monitoring"}
+              </p>
             </div>
-            <div className="space-y-2 rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Top customers</p>
-              {customerPulse.slice(0, 3).length === 0 ? (
-                <p className="text-xs text-ink-soft">No customer activity yet.</p>
+
+            <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Top customer</p>
+              {customerPulse.length === 0 ? (
+                <p className="mt-1 text-xs text-ink-soft">No customer activity yet.</p>
               ) : (
-                customerPulse.slice(0, 3).map((customer, index) => (
-                  <div key={`${customer.email}-rail-${index}`} className="rounded-lg border border-line/70 bg-panel px-2 py-1.5">
-                    <p className="text-xs font-semibold text-ink">{customer.name}</p>
-                    <p className="text-[11px] text-ink-soft">{customer.visits} interactions · {formatCurrency(customer.value)}</p>
-                  </div>
-                ))
+                <div className="mt-2 rounded-lg border border-line/70 bg-panel/95 px-2 py-1.5">
+                  <p className="text-xs font-semibold text-ink">{customerPulse[0].name}</p>
+                  <p className="text-[11px] text-ink-soft">{customerPulse[0].visits} interactions · {formatCurrency(customerPulse[0].value)}</p>
+                </div>
               )}
             </div>
-            <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-                <Users className="h-3.5 w-3.5" />
-                Automation
-              </p>
-              <p className="mt-1 text-sm text-ink">{autoRefreshEnabled ? "Auto refresh enabled" : "Manual mode"}</p>
+
+            <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Moderation</p>
+                <span className="text-[10px] font-semibold text-ink-soft">{canViewModerationAudit ? "super-admin" : "standard"}</span>
+              </div>
+              {canViewModerationAudit ? (
+                <>
+                  <p className="mt-1 text-xs text-ink-soft">Recent actions: {moderationActivityCount}</p>
+                  {loadingModerationAudit ? (
+                    <p className="mt-1 text-xs text-ink-soft">Loading audit activity...</p>
+                  ) : moderationAuditLogs.length === 0 ? (
+                    <p className="mt-1 text-xs text-ink-soft">No audit entries yet.</p>
+                  ) : (
+                    <div className="mt-2 space-y-1.5">
+                      {moderationAuditLogs.slice(0, 3).map((item, index) => (
+                        <div key={`${item?.id || item?.createdAt || "audit"}-${index}`} className="rounded-lg border border-line/70 bg-panel/95 px-2 py-1.5">
+                          <p className="text-[11px] font-semibold text-ink line-clamp-1">{String(item?.action || "audit").replace(/_/g, " ")}</p>
+                          <p className="text-[10px] text-ink-soft">{item?.createdAt ? formatRelativeTime(item.createdAt) : "just now"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="mt-1 text-xs text-ink-soft">Audit feed visible to super-admin only.</p>
+              )}
             </div>
           </Surface>
         </div>
 
-        <Surface className="space-y-3 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md">
+        <Surface className="space-y-3 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md transition-all duration-300 hover:shadow-2xl hover:shadow-brand/10">
           <SectionHeading
-            eyebrow="Operations focus"
-            title="Fast actions for daily workflow"
-            description="Jump directly to priority queues and keep service quality tight during busy hours."
+            eyebrow="Quick actions"
+            title="Daily execution"
+            description="Run priority actions quickly from one compact strip."
           />
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={focusPendingBookings}>Pending bookings ({pendingBookings.length})</Button>
-            <Button type="button" variant="outline" onClick={focusPendingOrders}>Pending orders ({pendingOrders.length})</Button>
-            <Button type="button" variant="outline" onClick={focusUnreadMessages}>Unread messages ({unreadMessagesCount})</Button>
-            <Button type="button" variant="outline" onClick={focusProductsManagement}>Manage products</Button>
+            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={focusPendingBookings}>Pending bookings ({pendingBookings.length})</Button>
+            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={focusPendingOrders}>Pending orders ({pendingOrders.length})</Button>
+            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={focusUnreadMessages}>Unread messages ({unreadMessagesCount})</Button>
+            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={focusProductsManagement}>Manage products</Button>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
             <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.15em] text-ink-soft">SERVICE QUALITY</span>
@@ -2288,11 +2398,11 @@ export default function Admin() {
           </div>
         </Surface>
 
-        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md">
+        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md transition-all duration-300 hover:shadow-2xl hover:shadow-brand/10">
           <SectionHeading
-            eyebrow="Executive control strip"
-            title="Operational quality indicators"
-            description="A standard management layer to track approval speed, revenue quality, and queue pressure at a glance."
+            eyebrow="Executive strip"
+            title="Operational indicators"
+            description="Compact KPIs for speed, value, and queue quality."
           />
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
@@ -2314,12 +2424,17 @@ export default function Admin() {
           </div>
         </Surface>
 
-        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md">
-          <SectionHeading
-            eyebrow="Daily operations board"
-            title="Calendar-first execution"
-            description="Track today's workflow by date, monitor service load, and keep throughput under control."
-          />
+        <details className="rounded-[1.2rem] border border-white/30 bg-panel/88 shadow-xl backdrop-blur-md open:shadow-2xl open:shadow-brand/10 transition-all duration-300">
+          <summary className="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Operations board</p>
+                <p className="text-sm font-semibold text-ink">Calendar execution & floor planning</p>
+              </div>
+              <span className="rounded-full border border-line/70 bg-panel px-3 py-1 text-[11px] font-semibold text-ink-soft">Expand</span>
+            </div>
+          </summary>
+          <div className="space-y-4 border-t border-line/50 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <label htmlFor="operations-date" className="mb-2 block text-sm font-semibold text-ink">Operations date</label>
@@ -2353,7 +2468,7 @@ export default function Admin() {
                 placeholder="Amina, Tunde, Grace"
               />
             </div>
-            <Button type="button" variant="outline" onClick={() => setOperationsDate(todayDateKey())}>Jump to today</Button>
+            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={() => setOperationsDate(todayDateKey())}>Jump to today</Button>
           </div>
 
           <div className="grid gap-3 md:grid-cols-5">
@@ -2504,8 +2619,9 @@ export default function Admin() {
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" onClick={() => setOperationsDate(todayDateKey())}>View today</Button>
+                      <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={() => setOperationsDate(todayDateKey())}>View today</Button>
                       <Button
+                        className="transition-all duration-200 hover:-translate-y-0.5"
                         type="button"
                         variant="outline"
                         onClick={() => {
@@ -2518,6 +2634,7 @@ export default function Admin() {
                         Open pending orders
                       </Button>
                       <Button
+                        className="transition-all duration-200 hover:-translate-y-0.5"
                         type="button"
                         variant="outline"
                         onClick={() => {
@@ -2550,20 +2667,25 @@ export default function Admin() {
             <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.15em] text-ink-soft">DAILY REVENUE SIGNAL</span>
             <span>Estimated booked/order value: <strong className="text-ink">{formatCurrency(operationsRevenue)}</strong></span>
           </div>
-        </Surface>
+          </div>
+        </details>
 
-        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md">
-          <SectionHeading
-            eyebrow="Customer pulse"
-            title="Top returning customers"
-            description="Spot loyal clients and high-value relationships quickly from booking and order activity."
-          />
-          <div className="space-y-2">
+        <details className="rounded-[1.2rem] border border-white/30 bg-panel/88 shadow-xl backdrop-blur-md open:shadow-2xl open:shadow-brand/10 transition-all duration-300">
+          <summary className="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Customer pulse</p>
+                <p className="text-sm font-semibold text-ink">Top returning customers</p>
+              </div>
+              <span className="rounded-full border border-line/70 bg-panel px-3 py-1 text-[11px] font-semibold text-ink-soft">Expand</span>
+            </div>
+          </summary>
+          <div className="space-y-2 border-t border-line/50 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
             {customerPulse.length === 0 ? (
               <EmptyState title="No customer activity yet" description="Customer insights will appear as bookings and orders come in." />
             ) : (
               customerPulse.map((customer, index) => (
-                <div key={`${customer.email}-${index}`} className="rounded-xl border border-line/70 bg-panel/92 p-3">
+                <div key={`${customer.email}-${index}`} className="rounded-xl border border-line/70 bg-panel/92 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-brand/10">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-ink">{customer.name}</p>
                     <span className="text-xs text-ink-soft">{customer.visits} interactions</span>
@@ -2574,7 +2696,7 @@ export default function Admin() {
               ))
             )}
           </div>
-        </Surface>
+        </details>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <button type="button" className={getPanelButtonClass("bookings")} onClick={() => setActivePanel("bookings")}>
@@ -2598,12 +2720,17 @@ export default function Admin() {
           <StatCard label="Order value" value={formatCurrency(orderRevenueTotal)} />
         </div>
 
-        <Surface className="space-y-4 border-white/35 bg-panel/90 shadow-xl backdrop-blur-md">
-          <SectionHeading
-            eyebrow="Workspace structure"
-            title="Professional admin areas"
-            description="Use dedicated sections for each workflow to keep operations clean, mature, and accountable."
-          />
+        <details className="rounded-[1.2rem] border border-white/35 bg-panel/90 shadow-xl backdrop-blur-md open:shadow-2xl open:shadow-brand/10 transition-all duration-300">
+          <summary className="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Workspace structure</p>
+                <p className="text-sm font-semibold text-ink">Core admin work areas</p>
+              </div>
+              <span className="rounded-full border border-line/70 bg-panel px-3 py-1 text-[11px] font-semibold text-ink-soft">Expand</span>
+            </div>
+          </summary>
+          <div className="space-y-4 border-t border-line/50 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {ADMIN_PANEL_CONFIG.map((panel) => (
               (() => {
@@ -2612,7 +2739,7 @@ export default function Admin() {
                   <button
                     key={panel.key}
                     type="button"
-                    className={`rounded-[1.2rem] border px-4 py-3 text-left transition-all ${activePanel === panel.key
+                    className={`rounded-[1.2rem] border px-4 py-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${activePanel === panel.key
                       ? "border-brand/70 bg-brand-light/25 shadow-md"
                       : "border-line/70 bg-panel/85 hover:bg-panel"}`}
                     onClick={() => setActivePanel(panel.key)}
@@ -2637,17 +2764,18 @@ export default function Admin() {
             <span className="hidden h-1 w-1 rounded-full bg-ink-soft/60 sm:inline-block" />
             <span>Last refreshed: {lastRefreshedAt ? new Date(lastRefreshedAt).toLocaleString() : "Not yet"}</span>
           </div>
-        </Surface>
+          </div>
+        </details>
 
         {!activePanel ? (
           <EmptyState title="Pick a section" description="Click Bookings, Orders, Messages, or Products above to open management details." />
         ) : null}
 
-        <Surface className="space-y-4">
+        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md transition-all duration-300 hover:shadow-2xl hover:shadow-brand/10">
           <SectionHeading
             eyebrow="Operational snapshot"
-            title="Priorities requiring attention"
-            description="Quick status indicators for incoming work and team follow-through."
+            title="Priority status"
+            description="Concise indicators for incoming work."
           />
           <div className="flex flex-wrap gap-3">
             <StatusPill value={`${pendingBookings.length} pending bookings`} />
@@ -2657,16 +2785,17 @@ export default function Admin() {
           </div>
         </Surface>
 
-        <Surface className="space-y-4">
+        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md transition-all duration-300 hover:shadow-2xl hover:shadow-brand/10">
           <SectionHeading
             eyebrow="Productivity"
             title="Workspace tools"
-            description="Switch between cards and compact rows, and export the currently filtered data."
+            description="View mode and quick exports."
           />
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" variant={viewMode === "cards" ? "default" : "outline"} onClick={() => setViewMode("cards")}>Cards view</Button>
-            <Button type="button" variant={viewMode === "compact" ? "default" : "outline"} onClick={() => setViewMode("compact")}>Compact view</Button>
+            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant={viewMode === "cards" ? "default" : "outline"} onClick={() => setViewMode("cards")}>Cards view</Button>
+            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant={viewMode === "compact" ? "default" : "outline"} onClick={() => setViewMode("compact")}>Compact view</Button>
             <Button
+              className="transition-all duration-200 hover:-translate-y-0.5"
               type="button"
               variant="outline"
               onClick={() => {
@@ -2690,6 +2819,7 @@ export default function Admin() {
               Export bookings CSV
             </Button>
             <Button
+              className="transition-all duration-200 hover:-translate-y-0.5"
               type="button"
               variant="outline"
               onClick={() => {
