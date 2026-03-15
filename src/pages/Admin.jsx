@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import CollapsibleDashboardBox from "@/components/site/shared/CollapsibleDashboardBox";
 import { Link } from "react-router-dom";
-import { CalendarCheck2, Eye, EyeOff, MessageSquareText, PackageSearch, ShoppingBag } from "lucide-react";
+import { Bell, CalendarCheck2, Eye, EyeOff, LayoutDashboard, MessageSquareText, PackageSearch, Settings, ShoppingBag, Users } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -2092,6 +2092,181 @@ export default function Admin() {
         </div>
 
         <Notice tone={dashboardNotice?.tone} message={dashboardNotice?.message} />
+
+        <div className="grid items-start gap-5 xl:grid-cols-[248px_minmax(0,1fr)_308px]">
+          <Surface className="h-fit space-y-4 border-white/35 bg-panel/90 shadow-xl backdrop-blur-md xl:sticky xl:top-5">
+            <SectionHeading
+              eyebrow="Admin nav"
+              title="Workspace"
+              description="Switch quickly between operational areas."
+            />
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setActivePanel(null)}
+                className={`w-full rounded-xl border px-3 py-2 text-left transition ${!activePanel ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
+              >
+                <div className="flex items-center gap-2">
+                  <LayoutDashboard className="h-4 w-4 text-brand-deep" />
+                  <span className="text-sm font-semibold text-ink">Overview</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePanel("bookings")}
+                className={`w-full rounded-xl border px-3 py-2 text-left transition ${activePanel === "bookings" ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+                    <CalendarCheck2 className="h-4 w-4 text-brand-deep" />
+                    Bookings
+                  </span>
+                  <span className="rounded-full bg-panel-strong/70 px-2 py-0.5 text-xs font-semibold text-ink-soft">{dashboard.bookings.length}</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePanel("orders")}
+                className={`w-full rounded-xl border px-3 py-2 text-left transition ${activePanel === "orders" ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+                    <ShoppingBag className="h-4 w-4 text-brand-deep" />
+                    Orders
+                  </span>
+                  <span className="rounded-full bg-panel-strong/70 px-2 py-0.5 text-xs font-semibold text-ink-soft">{dashboard.orders.length}</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePanel("messages")}
+                className={`w-full rounded-xl border px-3 py-2 text-left transition ${activePanel === "messages" ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+                    <Bell className="h-4 w-4 text-brand-deep" />
+                    Messages
+                  </span>
+                  <span className="rounded-full bg-panel-strong/70 px-2 py-0.5 text-xs font-semibold text-ink-soft">{unreadMessagesCount}</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePanel("products")}
+                className={`w-full rounded-xl border px-3 py-2 text-left transition ${activePanel === "products" ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+                    <Settings className="h-4 w-4 text-brand-deep" />
+                    Products & fees
+                  </span>
+                  <span className="rounded-full bg-panel-strong/70 px-2 py-0.5 text-xs font-semibold text-ink-soft">{dashboard.products.length}</span>
+                </div>
+              </button>
+            </div>
+            <div className="rounded-xl border border-line/70 bg-linear-to-br from-panel/95 to-panel-strong/70 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Queue pressure</p>
+              <p className="mt-1 text-lg font-semibold text-ink">{pendingBookings.length + pendingOrders.length}</p>
+              <p className="mt-1 text-xs text-ink-soft">pending bookings + orders</p>
+            </div>
+            <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Operations mode</p>
+              <p className="mt-1 text-sm font-semibold text-ink">{autoRefreshEnabled ? "Live monitoring" : "Manual monitoring"}</p>
+              <p className="mt-1 text-xs text-ink-soft">Use live mode during peak hours for faster updates.</p>
+            </div>
+          </Surface>
+
+          <Surface className="space-y-4 border-white/35 bg-panel/90 shadow-xl backdrop-blur-md">
+            <SectionHeading
+              eyebrow="Main workspace"
+              title="Daily command panel"
+              description="Central area for approvals, assignments, and customer flow execution."
+            />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-line/70 bg-panel/92 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Pending bookings</p>
+                <p className="mt-1 text-lg font-semibold text-ink">{pendingBookings.length}</p>
+                <p className="text-xs text-ink-soft">needs approval</p>
+              </div>
+              <div className="rounded-2xl border border-line/70 bg-panel/92 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Pending orders</p>
+                <p className="mt-1 text-lg font-semibold text-ink">{pendingOrders.length}</p>
+                <p className="text-xs text-ink-soft">needs dispatch</p>
+              </div>
+              <div className="rounded-2xl border border-line/70 bg-panel/92 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Unread messages</p>
+                <p className="mt-1 text-lg font-semibold text-ink">{unreadMessagesCount}</p>
+                <p className="text-xs text-ink-soft">customer inbox</p>
+              </div>
+              <div className="rounded-2xl border border-line/70 bg-panel/92 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Order value</p>
+                <p className="mt-1 text-lg font-semibold text-ink">{formatCurrency(orderRevenueTotal)}</p>
+                <p className="text-xs text-ink-soft">current total</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={focusPendingBookings}>Open booking queue</Button>
+              <Button type="button" variant="outline" onClick={focusPendingOrders}>Open order queue</Button>
+              <Button type="button" variant="outline" onClick={focusUnreadMessages}>Open message queue</Button>
+              <Button type="button" variant="outline" onClick={refreshDashboard}>{loadingDashboard ? "Refreshing..." : "Refresh"}</Button>
+            </div>
+            <div className="rounded-xl border border-line/70 bg-linear-to-r from-panel/95 to-panel-strong/70 p-3 text-xs text-ink-soft">
+              Active section: <strong className="text-ink">{activePanelTitle}</strong> · Last refreshed: {lastRefreshedAt ? new Date(lastRefreshedAt).toLocaleString() : "Not yet"}
+            </div>
+          </Surface>
+
+          <Surface className="h-fit space-y-4 border-white/35 bg-panel/90 shadow-xl backdrop-blur-md xl:sticky xl:top-5">
+            <SectionHeading
+              eyebrow="Insights"
+              title="Right rail"
+              description="Health, weather, and customer relationship pulse."
+            />
+            <div className="space-y-2 rounded-xl border border-line/70 bg-panel/92 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Now</p>
+              <p className="text-sm font-semibold text-ink">{adminNow.toLocaleDateString()}</p>
+              <p className="text-sm text-ink-soft">{adminNow.toLocaleTimeString()}</p>
+            </div>
+            <div className="space-y-2 rounded-xl border border-line/70 bg-panel/92 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Weather · Lagos</p>
+              <p className="text-sm font-semibold text-ink">
+                {adminWeather.loading
+                  ? "Loading..."
+                  : adminWeather.temperature != null
+                    ? `${Math.round(adminWeather.temperature)}°C · ${adminWeather.label}`
+                    : adminWeather.label}
+              </p>
+            </div>
+            <div className="space-y-2 rounded-xl border border-line/70 bg-panel/92 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Queue health</p>
+              <p className={`text-sm font-semibold ${executiveHealthSignal.tone}`}>{executiveHealthSignal.label}</p>
+              <p className="text-xs text-ink-soft">Overdue (&gt;24h): {overduePendingCount}</p>
+            </div>
+            <div className="space-y-2 rounded-xl border border-line/70 bg-panel/92 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Top customers</p>
+              {customerPulse.slice(0, 3).length === 0 ? (
+                <p className="text-xs text-ink-soft">No customer activity yet.</p>
+              ) : (
+                customerPulse.slice(0, 3).map((customer, index) => (
+                  <div key={`${customer.email}-rail-${index}`} className="rounded-lg border border-line/70 bg-panel px-2 py-1.5">
+                    <p className="text-xs font-semibold text-ink">{customer.name}</p>
+                    <p className="text-[11px] text-ink-soft">{customer.visits} interactions · {formatCurrency(customer.value)}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
+              <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+                <Users className="h-3.5 w-3.5" />
+                Automation
+              </p>
+              <p className="mt-1 text-sm text-ink">{autoRefreshEnabled ? "Auto refresh enabled" : "Manual mode"}</p>
+            </div>
+          </Surface>
+        </div>
 
         <Surface className="space-y-3 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md">
           <SectionHeading
