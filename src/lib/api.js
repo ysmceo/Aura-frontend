@@ -9,23 +9,19 @@ export class ApiError extends Error {
 
 const RAW_API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").trim();
 const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
-let LAST_SUCCESSFUL_API_ORIGIN = "";
 
-function canUseWindow() {
-  return typeof window !== "undefined" && Boolean(window.location);
-}
+function resolveApiOrigin() {
+  if (!API_BASE_URL) {
+    return "";
+  }
 
-function extractOrigin(urlValue) {
   try {
-    const raw = String(urlValue || "").trim();
-    if (!raw) return "";
-
-    if (/^https?:\/\//i.test(raw)) {
-      return new URL(raw).origin;
+    if (/^https?:\/\//i.test(API_BASE_URL)) {
+      return new URL(API_BASE_URL).origin;
     }
 
     if (canUseWindow()) {
-      return new URL(raw, window.location.origin).origin;
+      return new URL(API_BASE_URL, window.location.origin).origin;
     }
   } catch {
     return "";
@@ -34,48 +30,12 @@ function extractOrigin(urlValue) {
   return "";
 }
 
-function rememberSuccessfulApiOrigin(urlValue) {
-  const nextOrigin = extractOrigin(urlValue);
-  if (nextOrigin) {
-    LAST_SUCCESSFUL_API_ORIGIN = nextOrigin;
-  }
-}
-
-function getLocalhostPortFromApiBase() {
-  try {
-    if (!API_BASE_URL) {
-      return null;
-    }
-
-    const parsed = new URL(API_BASE_URL);
-    const host = String(parsed.hostname || "").toLowerCase();
-
-    if (host !== "localhost" && host !== "127.0.0.1") {
-      return null;
-    }
-
-    const explicitPort = Number(parsed.port || 0);
-
-    if (explicitPort > 0) {
-      return explicitPort;
-    }
-
-    if (parsed.protocol === "http:") {
-      return 80;
-    }
-
-    if (parsed.protocol === "https:") {
-      return 443;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
+function canUseWindow() {
+  return typeof window !== "undefined" && Boolean(window.location);
 }
 
 function buildLocalApiFallbackUrls(pathname) {
-  if (!canUseWindow()) {
+  if (API_BASE_URL || !canUseWindow()) {
     return [];
   }
 
@@ -86,12 +46,7 @@ function buildLocalApiFallbackUrls(pathname) {
     return [];
   }
 
-  const configuredLocalPort = getLocalhostPortFromApiBase();
-  const candidatePorts = [configuredLocalPort, 3000, 3002, 3001, 3100]
-    .filter((port) => Number.isInteger(port) && Number(port) > 0)
-    .filter((port, index, all) => all.indexOf(port) === index);
-
-  return candidatePorts.map((port) => `http://localhost:${port}${pathname}`);
+  return [3000, 3002, 3001, 3100].map((port) => `http://localhost:${port}${pathname}`);
 }
 
 export function resolveApiUrl(pathname) {
@@ -128,24 +83,13 @@ export function resolveBackendAssetUrl(pathname) {
   }
 
   const normalizedPath = value.startsWith("/") ? value : `/${value}`;
-  const configuredApiOrigin = extractOrigin(API_BASE_URL);
+  const origin = resolveApiOrigin();
 
-  if (configuredApiOrigin) {
-    return `${configuredApiOrigin}${normalizedPath}`;
-  }
-
-  if (LAST_SUCCESSFUL_API_ORIGIN) {
-    return `${LAST_SUCCESSFUL_API_ORIGIN}${normalizedPath}`;
+  if (origin) {
+    return `${origin}${normalizedPath}`;
   }
 
   if (canUseWindow()) {
-    const host = String(window.location.hostname || "").toLowerCase();
-    const isLocalHost = host === "localhost" || host === "127.0.0.1";
-
-    if (isLocalHost) {
-      return `http://localhost:3000${normalizedPath}`;
-    }
-
     return `${window.location.origin}${normalizedPath}`;
   }
 
@@ -207,17 +151,12 @@ export async function apiRequest(pathname, options = {}) {
 
   try {
     response = await fetch(primaryUrl, config);
-    if (response) {
-      rememberSuccessfulApiOrigin(primaryUrl);
-    }
     payload = await readPayload(response);
   } catch (error) {
     fetchError = error;
   }
 
-  const shouldTryLocalFallback = (!response || !response.ok) && fallbackUrls.length > 0;
-
-  if (shouldTryLocalFallback) {
+  if (!response && fallbackUrls.length > 0) {
     for (const candidate of fallbackUrls) {
       if (candidate === primaryUrl) {
         continue;
@@ -225,9 +164,6 @@ export async function apiRequest(pathname, options = {}) {
 
       try {
         response = await fetch(candidate, config);
-        if (response) {
-          rememberSuccessfulApiOrigin(candidate);
-        }
         payload = await readPayload(response);
 
         if (response.ok) {
