@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import CollapsibleDashboardBox from "@/components/site/shared/CollapsibleDashboardBox";
-import { Link } from "react-router-dom";
-import { Bell, CalendarCheck2, Eye, EyeOff, LayoutDashboard, MessageSquareText, PackageSearch, Settings, ShoppingBag, Users } from "lucide-react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 
+import AdminLayout from "@/components/admin/AdminLayout";
+import { AdminDashboardProvider } from "@/components/admin/AdminDashboardContext";
+import {
+  ADMIN_SECTIONS,
+  ORDER_STATUS_LABELS,
+  getAdminSection
+} from "@/components/admin/admin-config";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { apiGet, apiPost, apiPut, apiRequest } from "@/lib/api";
@@ -11,33 +17,19 @@ import {
   EmptyState,
   Notice,
   SectionHeading,
-  StatCard,
   StatusPill,
   Surface,
   TextField
 } from "@/components/site/shared";
 import { formatCurrency, getErrorMessage } from "@/lib/site";
-import { resolveMediaSrc } from "@/lib/storefront";
 
 const TOKEN_KEY = "ceo-salon-admin-token";
-const BOOKING_STATUSES = ["pending", "approved", "cancelled", "completed"];
 const BOOKING_STATUS_LABELS = {
   pending: "Pending",
   approved: "Approved",
   cancelled: "Cancelled",
   completed: "Completed"
 };
-const ORDER_STATUSES = ["pending", "approved", "processed", "shipped", "on_the_way", "delivered", "cancelled"];
-const ORDER_STATUS_LABELS = {
-  pending: "Pending",
-  approved: "Approved",
-  processed: "Processed",
-  shipped: "Shipped",
-  on_the_way: "On the way",
-  delivered: "Delivered",
-  cancelled: "Cancelled"
-};
-const ORDER_STATUS_FLOW_TEXT = "Pending → Approved → Processed → Shipped → On the way → Delivered";
 const ADMIN_BACKGROUND_VIDEO_URL = "https://cdn.dribbble.com/userupload/44652968/file/313877bf29b8434b808c8aaad3f89a21.mp4";
 const ADMIN_BACKGROUND_FALLBACK_IMAGE_URL = "/images/p1.webp";
 const ADMIN_BACKGROUND_INTERCHANGE_IMAGE_URL = "https://cdn.dribbble.com/userupload/46843023/file/c8ecfc7f661d1ee36316579ecc740df8.png?resize=1504x859&vertical=center";
@@ -78,13 +70,6 @@ const WEATHER_CODE_LABELS = {
   96: "Thunderstorm with hail",
   99: "Heavy thunderstorm with hail"
 };
-const ADMIN_PANEL_CONFIG = [
-  { key: "bookings", title: "Bookings", description: "Appointments, reschedules, and confirmations.", icon: CalendarCheck2 },
-  { key: "orders", title: "Orders", description: "Dispatch, delivery updates, and customer follow-ups.", icon: ShoppingBag },
-  { key: "messages", title: "Messages", description: "Complaints, inbox triage, and replies.", icon: MessageSquareText },
-  { key: "products", title: "Products", description: "Catalog management, stock, and pricing.", icon: PackageSearch }
-];
-
 function toDateKey(value) {
   const parsed = new Date(String(value || ""));
   if (Number.isNaN(parsed.getTime())) return "";
@@ -206,6 +191,8 @@ async function loadDashboard(token) {
 }
 
 export default function Admin() {
+  const navigate = useNavigate();
+  const location = useLocation();
 // Pagination state
     const [bookingsPage, setBookingsPage] = useState(1);
     const [ordersPage, setOrdersPage] = useState(1);
@@ -249,7 +236,6 @@ export default function Admin() {
   const [focusedBookingId, setFocusedBookingId] = useState("");
   const [bulkBookingStatus, setBulkBookingStatus] = useState("approved");
   const [bulkOrderStatus, setBulkOrderStatus] = useState("processed");
-  const [activePanel, setActivePanel] = useState(null);
   const [activeBookingReplyId, setActiveBookingReplyId] = useState(null);
   const [activeBookingHistoryId, setActiveBookingHistoryId] = useState(null);
   const [bookingReplyDrafts, setBookingReplyDrafts] = useState({});
@@ -1433,10 +1419,22 @@ export default function Admin() {
     }).length,
     [moderationAuditLogs]
   );
-  const activePanelTitle = ADMIN_PANEL_CONFIG.find((item) => item.key === activePanel)?.title || "None";
-  const getPanelButtonClass = (panel) => `text-left rounded-[1.2rem] transition-all duration-200 ${activePanel === panel
-    ? "scale-[1.01] ring-2 ring-brand/70 shadow-lg shadow-brand/20"
-    : "opacity-95 hover:opacity-100 hover:translate-y-[-1px]"}`;
+  const activeSection = useMemo(() => {
+    const pathname = String(location.pathname || "");
+    const section = ADMIN_SECTIONS.find((item) => pathname.endsWith(`/${item.path}`));
+    return (section || getAdminSection("overview")).key;
+  }, [location.pathname]);
+  const sectionCounts = useMemo(
+    () => ({
+      overview: pendingBookings.length + pendingOrders.length,
+      bookings: pendingBookings.length,
+      orders: pendingOrders.length,
+      messages: unreadMessagesCount,
+      products: dashboard.products.length,
+      settings: null
+    }),
+    [dashboard.products.length, pendingBookings.length, pendingOrders.length, unreadMessagesCount]
+  );
 
   function renderBookingReplyComposer(item) {
     const bookingId = String(item?.id || "");
@@ -1728,24 +1726,24 @@ export default function Admin() {
   }
 
   function focusPendingBookings() {
-    setActivePanel("bookings");
+    navigate("/admin/bookings");
     setBookingStatusFilter("pending");
     setBookingsPage(1);
   }
 
   function focusPendingOrders() {
-    setActivePanel("orders");
+    navigate("/admin/orders");
     setOrderStatusFilter("pending");
     setOrdersPage(1);
   }
 
   function focusUnreadMessages() {
-    setActivePanel("messages");
+    navigate("/admin/messages");
     setMessageStatusFilter("unread");
   }
 
   function focusProductsManagement() {
-    setActivePanel("products");
+    navigate("/admin/products");
   }
 
   function updateBookingAssignment(item, field, value) {
@@ -1884,6 +1882,59 @@ export default function Admin() {
     } finally {
       setAssignmentNotifyBusyByBookingId((prev) => ({ ...prev, [bookingId]: false }));
     }
+  }
+
+  function handleSignOut() {
+    setToken("");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(TOKEN_KEY);
+    }
+  }
+
+  function toggleAutoRefresh() {
+    setAutoRefreshEnabled((prev) => !prev);
+  }
+
+  function exportBookingsCsv() {
+    if (!filteredBookings.length) {
+      setDashboardNotice({ tone: "error", message: "No filtered bookings available to export." });
+      return;
+    }
+
+    downloadCsv(
+      "bookings-export.csv",
+      filteredBookings.map((item) => ({
+        id: item.id,
+        name: item.name,
+        phone: item.phone,
+        service: item.serviceName,
+        date: item.date,
+        time: item.time,
+        amountDueNow: item.amountDueNow,
+        status: item.status
+      }))
+    );
+    setDashboardNotice({ tone: "success", message: "Bookings CSV exported." });
+  }
+
+  function exportOrdersCsv() {
+    if (!filteredOrders.length) {
+      setDashboardNotice({ tone: "error", message: "No filtered orders available to export." });
+      return;
+    }
+
+    downloadCsv(
+      "orders-export.csv",
+      filteredOrders.map((item) => ({
+        id: item.id,
+        orderCode: item.orderCode,
+        customer: item.name,
+        deliverySpeed: item.deliverySpeed,
+        totalAmount: item.totalAmount,
+        status: item.status
+      }))
+    );
+    setDashboardNotice({ tone: "success", message: "Orders CSV exported." });
   }
 
   function renderAnimatedAdminBackground() {
@@ -2117,1277 +2168,169 @@ export default function Admin() {
     );
   }
 
+  const dashboardContextValue = {
+    dashboard,
+    dashboardNotice,
+    moderationNotice,
+    refreshDashboard,
+    loadingDashboard,
+    autoRefreshEnabled,
+    setAutoRefreshEnabled,
+    toggleAutoRefresh,
+    adminIdentity,
+    adminRole,
+    adminNow,
+    adminWeather,
+    lastRefreshedAt,
+    pendingBookings,
+    approvedBookings,
+    pendingApprovalBookings,
+    focusedBooking,
+    pendingOrders,
+    unreadMessagesCount,
+    dueNowTotal,
+    orderRevenueTotal,
+    operationsDate,
+    setOperationsDate,
+    operationsChairCapacity,
+    setOperationsChairCapacity,
+    operationsStaffInput,
+    setOperationsStaffInput,
+    operationsDateBookings,
+    operationsDateOrders,
+    operationsDateMessages,
+    operationsRevenue,
+    operationsCompletionRate,
+    operationsBookingApprovalRate,
+    averageOrderValue,
+    executiveHealthSignal,
+    operationsStaffOptions,
+    operationsAssignmentValidation,
+    slotLoadSummary,
+    customerPulse,
+    canViewModerationAudit,
+    moderationActivityCount,
+    loadingModerationAudit,
+    moderationAuditLogs,
+    overduePendingCount,
+    viewMode,
+    setViewMode,
+    bookingSearch,
+    setBookingSearch,
+    bookingStatusFilter,
+    setBookingStatusFilter,
+    bookingDateFilter,
+    setBookingDateFilter,
+    orderSearch,
+    setOrderSearch,
+    orderStatusFilter,
+    setOrderStatusFilter,
+    orderDateFilter,
+    setOrderDateFilter,
+    messageSearch,
+    setMessageSearch,
+    messageTypeFilter,
+    setMessageTypeFilter,
+    messageStatusFilter,
+    setMessageStatusFilter,
+    filteredMessages,
+    bookingsPage,
+    setBookingsPage,
+    ordersPage,
+    setOrdersPage,
+    newRequestsPage,
+    setNewRequestsPage,
+    newRequestsPageSize,
+    setNewRequestsPageSize,
+    bookingPages,
+    orderPages,
+    newRequestPages,
+    bookingSlice,
+    orderSlice,
+    newRequestEntries,
+    newRequestSlice,
+    selectedBookingIds,
+    setSelectedBookingIds,
+    selectedOrderIds,
+    setSelectedOrderIds,
+    selectedBookingCount,
+    selectedOrderCount,
+    bookingActionBusyById,
+    orderActionBusyById,
+    focusedBookingId,
+    setFocusedBookingId,
+    bulkBookingStatus,
+    setBulkBookingStatus,
+    bulkOrderStatus,
+    setBulkOrderStatus,
+    applyBulkBookingStatus,
+    applyBulkOrderStatus,
+    saveBooking,
+    saveOrder,
+    saveFees,
+    savingFees,
+    feeForm,
+    setFeeForm,
+    productForm,
+    setProductForm,
+    productImagePreview,
+    setProductImagePreview,
+    handleAddProduct,
+    renderBookingReplyComposer,
+    renderOrderContactActions,
+    renderOrderReplyComposer,
+    renderMessageReplyComposer,
+    toggleSelection,
+    normalizeStatus,
+    getOrderStatusLabel,
+    bookingAssignments,
+    assignmentNotifyBusyByBookingId,
+    recentlyApprovedBookingIds,
+    updateBookingAssignment,
+    notifyBookingAssignment,
+    todayDateKey,
+    formatRelativeTime,
+    exportBookingsCsv,
+    exportOrdersCsv,
+    focusPendingBookings,
+    focusPendingOrders,
+    focusUnreadMessages,
+    focusProductsManagement
+  };
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-linear-to-br from-brand-light/40 via-brand-dark/10 to-brand-deep/10 px-4 py-6 text-ink sm:px-6 sm:py-10">
+    <div className="relative min-h-screen overflow-hidden bg-linear-to-br from-brand-light/40 via-brand-dark/10 to-brand-deep/10 px-4 py-4 text-ink sm:px-6 sm:py-6">
       <div className="pointer-events-none absolute -left-24 top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
       <div className="pointer-events-none absolute -right-16 bottom-20 h-64 w-64 rounded-full bg-brand-light/35 blur-3xl" />
       {renderAnimatedAdminBackground()}
 
-      <div className="relative z-10">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-deep/75">Admin</p>
-            <h1 className="font-display text-4xl text-ink sm:text-5xl">Salon operations</h1>
-            <p className="mt-2 text-sm text-ink-soft">Monitor bookings, fulfil orders, and keep every customer touchpoint polished from one professional workspace.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/40 bg-panel/88 px-2 py-2 shadow-sm backdrop-blur-md">
-            <ThemeToggle />
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={refreshDashboard}>
-              {loadingDashboard ? "Refreshing..." : "Refresh"}
-            </Button>
-            <Button
-              className="transition-all duration-200 hover:-translate-y-0.5"
-              type="button"
-              variant="outline"
-              onClick={() => setAutoRefreshEnabled((prev) => !prev)}
-            >
-              Live updates: {autoRefreshEnabled ? "On" : "Off"}
-            </Button>
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" asChild variant="outline">
-              <Link to="/">View website</Link>
-            </Button>
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" onClick={() => { setToken(""); if (typeof window !== "undefined") window.localStorage.removeItem(TOKEN_KEY); }}>
-              Sign out
-            </Button>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-white/45 bg-linear-to-r from-panel/96 via-panel/90 to-panel-strong/80 px-4 py-3 shadow-lg shadow-brand/8 backdrop-blur-md">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="inline-flex rounded-full border border-brand/30 bg-brand-light/20 px-3 py-1 font-semibold uppercase tracking-[0.16em] text-brand-deep">Executive brief</span>
-            <span className="rounded-full border border-line/60 bg-panel-strong/70 px-3 py-1 font-semibold text-ink">{adminNow.toLocaleDateString()}</span>
-            <span className="rounded-full border border-line/60 bg-panel-strong/70 px-3 py-1 font-semibold text-ink">{adminNow.toLocaleTimeString()}</span>
-            <span className="rounded-full border border-line/60 bg-panel-strong/70 px-3 py-1 font-semibold text-ink">
-              {adminWeather.loading
-                ? "Weather loading..."
-                : adminWeather.temperature != null
-                  ? `${Math.round(adminWeather.temperature)}°C · ${adminWeather.label}`
-                  : adminWeather.label}
-            </span>
-          </div>
-        </div>
-
-        <Notice tone={dashboardNotice?.tone} message={dashboardNotice?.message} />
-        <Notice tone={moderationNotice?.tone} message={moderationNotice?.message} />
-
-        <div className="grid items-start gap-4 xl:grid-cols-[236px_minmax(0,1fr)_274px]">
-          <Surface className="h-fit space-y-4 border-white/35 bg-panel/90 shadow-xl backdrop-blur-md xl:sticky xl:top-5">
-            <SectionHeading
-              eyebrow="Admin nav"
-              title="Workspace"
-              description="Switch quickly between operational areas."
-            />
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setActivePanel(null)}
-                className={`w-full rounded-xl border px-3 py-2 text-left transition ${!activePanel ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
-              >
-                <div className="flex items-center gap-2">
-                  <LayoutDashboard className="h-4 w-4 text-brand-deep" />
-                  <span className="text-sm font-semibold text-ink">Overview</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActivePanel("bookings")}
-                className={`w-full rounded-xl border px-3 py-2 text-left transition ${activePanel === "bookings" ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
-                    <CalendarCheck2 className="h-4 w-4 text-brand-deep" />
-                    Bookings
-                  </span>
-                  <span className="rounded-full bg-panel-strong/70 px-2 py-0.5 text-xs font-semibold text-ink-soft">{dashboard.bookings.length}</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActivePanel("orders")}
-                className={`w-full rounded-xl border px-3 py-2 text-left transition ${activePanel === "orders" ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
-                    <ShoppingBag className="h-4 w-4 text-brand-deep" />
-                    Orders
-                  </span>
-                  <span className="rounded-full bg-panel-strong/70 px-2 py-0.5 text-xs font-semibold text-ink-soft">{dashboard.orders.length}</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActivePanel("messages")}
-                className={`w-full rounded-xl border px-3 py-2 text-left transition ${activePanel === "messages" ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
-                    <Bell className="h-4 w-4 text-brand-deep" />
-                    Messages
-                  </span>
-                  <span className="rounded-full bg-panel-strong/70 px-2 py-0.5 text-xs font-semibold text-ink-soft">{unreadMessagesCount}</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActivePanel("products")}
-                className={`w-full rounded-xl border px-3 py-2 text-left transition ${activePanel === "products" ? "border-brand/70 bg-brand-light/25" : "border-line/70 bg-panel/90 hover:bg-panel"}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
-                    <Settings className="h-4 w-4 text-brand-deep" />
-                    Products & fees
-                  </span>
-                  <span className="rounded-full bg-panel-strong/70 px-2 py-0.5 text-xs font-semibold text-ink-soft">{dashboard.products.length}</span>
-                </div>
-              </button>
-            </div>
-            <div className="rounded-xl border border-line/70 bg-linear-to-br from-panel/95 to-panel-strong/70 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Queue pressure</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{pendingBookings.length + pendingOrders.length}</p>
-              <p className="mt-1 text-xs text-ink-soft">pending bookings + orders</p>
-            </div>
-            <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Operations mode</p>
-              <p className="mt-1 text-sm font-semibold text-ink">{autoRefreshEnabled ? "Live monitoring" : "Manual monitoring"}</p>
-              <p className="mt-1 text-xs text-ink-soft">Use live mode during peak hours for faster updates.</p>
-            </div>
-          </Surface>
-
-          <Surface className="space-y-4 border-white/35 bg-panel/90 shadow-xl backdrop-blur-md">
-            <SectionHeading
-              eyebrow="Main workspace"
-              title="Daily command panel"
-              description="Central area for approvals, assignments, and customer flow execution."
-            />
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-line/70 bg-panel/92 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Pending bookings</p>
-                <p className="mt-1 text-lg font-semibold text-ink">{pendingBookings.length}</p>
-                <p className="text-xs text-ink-soft">needs approval</p>
-              </div>
-              <div className="rounded-2xl border border-line/70 bg-panel/92 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Pending orders</p>
-                <p className="mt-1 text-lg font-semibold text-ink">{pendingOrders.length}</p>
-                <p className="text-xs text-ink-soft">needs dispatch</p>
-              </div>
-              <div className="rounded-2xl border border-line/70 bg-panel/92 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Unread messages</p>
-                <p className="mt-1 text-lg font-semibold text-ink">{unreadMessagesCount}</p>
-                <p className="text-xs text-ink-soft">customer inbox</p>
-              </div>
-              <div className="rounded-2xl border border-line/70 bg-panel/92 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Order value</p>
-                <p className="mt-1 text-lg font-semibold text-ink">{formatCurrency(orderRevenueTotal)}</p>
-                <p className="text-xs text-ink-soft">current total</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={focusPendingBookings}>Open booking queue</Button>
-              <Button type="button" variant="outline" onClick={focusPendingOrders}>Open order queue</Button>
-              <Button type="button" variant="outline" onClick={focusUnreadMessages}>Open message queue</Button>
-              <Button type="button" variant="outline" onClick={refreshDashboard}>{loadingDashboard ? "Refreshing..." : "Refresh"}</Button>
-            </div>
-            <div className="rounded-xl border border-line/70 bg-linear-to-r from-panel/95 to-panel-strong/70 p-3 text-xs text-ink-soft">
-              Active section: <strong className="text-ink">{activePanelTitle}</strong> · Last refreshed: {lastRefreshedAt ? new Date(lastRefreshedAt).toLocaleString() : "Not yet"}
-            </div>
-          </Surface>
-
-          <Surface className="h-fit space-y-3 border-white/40 bg-linear-to-b from-panel/95 to-panel/88 shadow-xl shadow-brand/10 backdrop-blur-md xl:sticky xl:top-4">
-            <SectionHeading
-              eyebrow="Insights"
-              title="Right rail"
-              description="Compact executive pulse for quick decisions."
-            />
-            <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Access</p>
-              <p className="mt-1 text-sm font-semibold text-ink">{adminIdentity?.name || "Admin"}</p>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-ink-soft">{adminRole.replace(/-/g, " ")} · {adminNow.toLocaleTimeString()}</p>
-              <p className="mt-2 text-[11px] text-ink-soft">
-                {adminWeather.loading
-                  ? "Weather loading..."
-                  : adminWeather.temperature != null
-                    ? `${Math.round(adminWeather.temperature)}°C · ${adminWeather.label}`
-                    : adminWeather.label}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Operations pulse</p>
-                <span className={`text-xs font-semibold ${executiveHealthSignal.tone}`}>{executiveHealthSignal.label}</span>
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-lg border border-line/70 bg-panel/95 px-2 py-1.5">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-ink-soft">Overdue</p>
-                  <p className="text-sm font-semibold text-ink">{overduePendingCount}</p>
-                </div>
-                <div className="rounded-lg border border-line/70 bg-panel/95 px-2 py-1.5">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-ink-soft">Auto mode</p>
-                  <p className="text-sm font-semibold text-ink">{autoRefreshEnabled ? "On" : "Off"}</p>
-                </div>
-              </div>
-              <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-ink-soft">
-                <Users className="h-3.5 w-3.5" />
-                {autoRefreshEnabled ? "Auto refresh enabled" : "Manual monitoring"}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Top customer</p>
-              {customerPulse.length === 0 ? (
-                <p className="mt-1 text-xs text-ink-soft">No customer activity yet.</p>
-              ) : (
-                <div className="mt-2 rounded-lg border border-line/70 bg-panel/95 px-2 py-1.5">
-                  <p className="text-xs font-semibold text-ink">{customerPulse[0].name}</p>
-                  <p className="text-[11px] text-ink-soft">{customerPulse[0].visits} interactions · {formatCurrency(customerPulse[0].value)}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Moderation</p>
-                <span className="text-[10px] font-semibold text-ink-soft">{canViewModerationAudit ? "super-admin" : "standard"}</span>
-              </div>
-              {canViewModerationAudit ? (
-                <>
-                  <p className="mt-1 text-xs text-ink-soft">Recent actions: {moderationActivityCount}</p>
-                  {loadingModerationAudit ? (
-                    <p className="mt-1 text-xs text-ink-soft">Loading audit activity...</p>
-                  ) : moderationAuditLogs.length === 0 ? (
-                    <p className="mt-1 text-xs text-ink-soft">No audit entries yet.</p>
-                  ) : (
-                    <div className="mt-2 space-y-1.5">
-                      {moderationAuditLogs.slice(0, 3).map((item, index) => (
-                        <div key={`${item?.id || item?.createdAt || "audit"}-${index}`} className="rounded-lg border border-line/70 bg-panel/95 px-2 py-1.5">
-                          <p className="text-[11px] font-semibold text-ink line-clamp-1">{String(item?.action || "audit").replace(/_/g, " ")}</p>
-                          <p className="text-[10px] text-ink-soft">{item?.createdAt ? formatRelativeTime(item.createdAt) : "just now"}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="mt-1 text-xs text-ink-soft">Audit feed visible to super-admin only.</p>
-              )}
-            </div>
-          </Surface>
-        </div>
-
-        <Surface className="space-y-3 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md transition-all duration-300 hover:shadow-2xl hover:shadow-brand/10">
-          <SectionHeading
-            eyebrow="Quick actions"
-            title="Daily execution"
-            description="Run priority actions quickly from one compact strip."
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={focusPendingBookings}>Pending bookings ({pendingBookings.length})</Button>
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={focusPendingOrders}>Pending orders ({pendingOrders.length})</Button>
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={focusUnreadMessages}>Unread messages ({unreadMessagesCount})</Button>
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={focusProductsManagement}>Manage products</Button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-            <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.15em] text-ink-soft">SERVICE QUALITY</span>
-            <span>Overdue pending items (&gt;24h): <strong className={overduePendingCount > 0 ? "text-warning" : "text-success"}>{overduePendingCount}</strong></span>
-            <span className="hidden h-1 w-1 rounded-full bg-ink-soft/60 sm:inline-block" />
-            <span>Queue now: <strong className="text-ink">{pendingBookings.length + pendingOrders.length}</strong></span>
-          </div>
-        </Surface>
-
-        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md transition-all duration-300 hover:shadow-2xl hover:shadow-brand/10">
-          <SectionHeading
-            eyebrow="Executive strip"
-            title="Operational indicators"
-            description="Compact KPIs for speed, value, and queue quality."
-          />
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Booking approval rate (day)</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{operationsBookingApprovalRate}%</p>
-            </div>
-            <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Average order value</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{formatCurrency(averageOrderValue)}</p>
-            </div>
-            <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Queue health</p>
-              <p className={`mt-1 text-lg font-semibold ${executiveHealthSignal.tone}`}>{executiveHealthSignal.label}</p>
-            </div>
-            <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Automation</p>
-              <p className="mt-1 text-lg font-semibold text-ink">{autoRefreshEnabled ? "Auto-refreshing" : "Manual refresh"}</p>
-            </div>
-          </div>
-        </Surface>
-
-        <details className="rounded-[1.2rem] border border-white/30 bg-panel/88 shadow-xl backdrop-blur-md open:shadow-2xl open:shadow-brand/10 transition-all duration-300">
-          <summary className="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Operations board</p>
-                <p className="text-sm font-semibold text-ink">Calendar execution & floor planning</p>
-              </div>
-              <span className="rounded-full border border-line/70 bg-panel px-3 py-1 text-[11px] font-semibold text-ink-soft">Expand</span>
-            </div>
-          </summary>
-          <div className="space-y-4 border-t border-line/50 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label htmlFor="operations-date" className="mb-2 block text-sm font-semibold text-ink">Operations date</label>
-              <input
-                id="operations-date"
-                type="date"
-                className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink"
-                value={operationsDate}
-                onChange={(event) => setOperationsDate(event.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="operations-chairs" className="mb-2 block text-sm font-semibold text-ink">Chair capacity</label>
-              <input
-                id="operations-chairs"
-                type="number"
-                min={1}
-                className="h-11 w-28 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink"
-                value={operationsChairCapacity}
-                onChange={(event) => setOperationsChairCapacity(Math.max(1, Number(event.target.value) || 1))}
-              />
-            </div>
-            <div className="min-w-65 flex-1">
-              <label htmlFor="operations-staff" className="mb-2 block text-sm font-semibold text-ink">Staff roster (comma separated)</label>
-              <input
-                id="operations-staff"
-                type="text"
-                className="h-11 w-full rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink"
-                value={operationsStaffInput}
-                onChange={(event) => setOperationsStaffInput(event.target.value)}
-                placeholder="Amina, Tunde, Grace"
-              />
-            </div>
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={() => setOperationsDate(todayDateKey())}>Jump to today</Button>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-5">
-            <StatCard label="Bookings (day)" value={operationsDateBookings.length} />
-            <StatCard label="Orders (day)" value={operationsDateOrders.length} />
-            <StatCard label="Messages (day)" value={operationsDateMessages.length} />
-            <StatCard label="Completion" value={`${operationsCompletionRate}%`} helper="approved/completed throughput" />
-            <StatCard label="Peak slot load" value={`${slotLoadSummary.peakSlotLoad}/${Math.max(1, operationsChairCapacity)}`} helper={slotLoadSummary.peakSlotTime === "--" ? "no active slot" : `${slotLoadSummary.peakSlotTime} · ${slotLoadSummary.peakUtilization}% utilized`} />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-            <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.15em] text-ink-soft">FLOOR LOAD</span>
-            <span>Current staff listed: <strong className="text-ink">{operationsStaffOptions.length}</strong></span>
-            <span className="hidden h-1 w-1 rounded-full bg-ink-soft/60 sm:inline-block" />
-            <span>Peak slot utilization: <strong className={slotLoadSummary.peakUtilization > 100 ? "text-danger" : slotLoadSummary.peakUtilization >= 85 ? "text-warning" : "text-success"}>{slotLoadSummary.peakUtilization}%</strong></span>
-          </div>
-
-          <div className={`rounded-2xl border px-3 py-2 text-xs ${operationsAssignmentValidation.isHealthy ? "border-success/40 bg-success/10 text-success" : "border-warning/40 bg-warning/10 text-warning"}`}>
-            {operationsAssignmentValidation.isHealthy
-              ? "Assignment validation: all bookings have valid staff/chair allocations for their time slots."
-              : `Assignment validation: ${operationsAssignmentValidation.bookingsWithIssues} booking(s) need attention · missing=${operationsAssignmentValidation.missingAssignments} · staff conflicts=${operationsAssignmentValidation.staffConflicts} · chair conflicts=${operationsAssignmentValidation.chairConflicts}`}
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div className="rounded-[1.2rem] border border-line/70 bg-panel/90 p-4">
-              <p className="text-sm font-semibold text-ink">Appointment timeline</p>
-              <div className="mt-3 space-y-2">
-                {operationsDateBookings.length === 0 ? (
-                  <EmptyState title="No bookings on this date" description="Select another date to inspect salon appointment flow." />
-                ) : (
-                  operationsDateBookings.map((item) => {
-                    const assignment = bookingAssignments[String(item.id) || ""] || {};
-                    const bookingIssues = operationsAssignmentValidation.issuesByBookingId[String(item.id) || ""] || [];
-                    const notifyBusy = Boolean(assignmentNotifyBusyByBookingId[String(item.id) || ""]);
-                    const isRecentlyApproved = Boolean(recentlyApprovedBookingIds[String(item.id) || ""]);
-                    const bookingStatus = String(item?.status || "").trim().toLowerCase();
-                    const hasAutoActionBadge = Boolean(item?.lastAssignment?.autoApproved);
-                    const autoApprovedAtLabel = hasAutoActionBadge && item?.lastAssignment?.autoApprovedAt
-                      ? new Date(String(item.lastAssignment.autoApprovedAt)).toLocaleString()
-                      : "";
-                    const autoApprovedRelativeLabel = hasAutoActionBadge && item?.lastAssignment?.autoApprovedAt
-                      ? formatRelativeTime(item.lastAssignment.autoApprovedAt)
-                      : "";
-                    return (
-                      <div
-                        key={`ops-booking-${item.id}`}
-                        className={`rounded-xl border bg-panel/92 p-3 transition-all duration-500 ${isRecentlyApproved
-                          ? "border-success/70 ring-2 ring-success/40 shadow-lg shadow-success/20"
-                          : "border-line/70"}`}
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-ink">{item.time || "--:--"} · {item.name || "Customer"}</p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            {hasAutoActionBadge ? (
-                              <span className="inline-flex rounded-full border border-success/35 bg-success/15 px-2 py-1 text-[10px] font-semibold tracking-[0.08em] text-success">
-                                AUTO ACTION PERFORMED
-                              </span>
-                            ) : null}
-                            <StatusPill value={item.status || "pending"} />
-                          </div>
-                        </div>
-                        <p className="mt-1 text-xs text-ink-soft">{item.serviceName || "Service"} · {item.phone || item.email || "No contact"}</p>
-                        {hasAutoActionBadge && autoApprovedAtLabel ? (
-                          <p className="mt-1 text-[11px] text-success/85" title={`Auto-approved at ${autoApprovedAtLabel}`}>
-                            Auto-approved {autoApprovedRelativeLabel || "just now"}
-                          </p>
-                        ) : null}
-                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                          <select
-                            className="h-10 rounded-xl border border-line bg-panel/92 px-3 text-xs text-ink"
-                            value={assignment.staff || ""}
-                            onChange={(event) => updateBookingAssignment(item, "staff", event.target.value)}
-                          >
-                            <option value="">Assign staff</option>
-                            {operationsStaffOptions.map((staff) => (
-                              <option key={`${item.id}-${staff}`} value={staff}>{staff}</option>
-                            ))}
-                          </select>
-                          <select
-                            className="h-10 rounded-xl border border-line bg-panel/92 px-3 text-xs text-ink"
-                            value={assignment.chair || ""}
-                            onChange={(event) => updateBookingAssignment(item, "chair", event.target.value)}
-                          >
-                            <option value="">Assign chair</option>
-                            {Array.from({ length: Math.max(1, operationsChairCapacity) }, (_, index) => index + 1).map((chairNo) => (
-                              <option key={`${item.id}-chair-${chairNo}`} value={String(chairNo)}>Chair {chairNo}</option>
-                            ))}
-                          </select>
-                        </div>
-                        {bookingIssues.length > 0 ? (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {bookingIssues.map((issue) => (
-                              <span key={`${item.id}-${issue}`} className="inline-flex rounded-full bg-warning/15 px-2 py-1 text-[10px] font-semibold text-warning">
-                                {issue}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-2 text-[11px] text-success">Assignment valid for this booking.</p>
-                        )}
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            disabled={notifyBusy || !assignment.staff || !assignment.chair}
-                            onClick={() => notifyBookingAssignment(item)}
-                          >
-                            {notifyBusy
-                              ? "Sending notice..."
-                              : ["pending", "new"].includes(bookingStatus)
-                                ? "Assign + Notify + Approve"
-                                : "Assign + Notify"}
-                          </Button>
-                        </div>
-                        {["pending", "new"].includes(bookingStatus) ? (
-                          <p className="mt-2 text-[11px] text-ink-soft">
-                            Tip: selecting both staff and chair auto-runs Assign + Notify + Approve.
-                          </p>
-                        ) : null}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-[1.2rem] border border-line/70 bg-panel/90 p-4">
-              <p className="text-sm font-semibold text-ink">Order fulfilment timeline</p>
-              <div className="mt-3 space-y-2">
-                {operationsDateOrders.length === 0 ? (
-                  <div className="rounded-xl border border-line/70 bg-panel/92 p-4">
-                    <p className="text-sm font-semibold text-ink">No orders found for this date</p>
-                    <p className="mt-1 text-xs text-ink-soft">{new Date(`${operationsDate}T00:00:00`).toLocaleDateString()} · Orders created on this date will appear here in dispatch sequence.</p>
-
-                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                      <div className="rounded-lg border border-line/70 bg-panel px-3 py-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Orders (date)</p>
-                        <p className="mt-1 text-sm font-semibold text-ink">0</p>
-                      </div>
-                      <div className="rounded-lg border border-line/70 bg-panel px-3 py-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Pending dispatch</p>
-                        <p className="mt-1 text-sm font-semibold text-ink">0</p>
-                      </div>
-                      <div className="rounded-lg border border-line/70 bg-panel px-3 py-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Revenue (date)</p>
-                        <p className="mt-1 text-sm font-semibold text-ink">{formatCurrency(0)}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant="outline" onClick={() => setOperationsDate(todayDateKey())}>View today</Button>
-                      <Button
-                        className="transition-all duration-200 hover:-translate-y-0.5"
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setActivePanel("orders");
-                          setOrderStatusFilter("pending");
-                          setOrderDateFilter(operationsDate);
-                          setOrdersPage(1);
-                        }}
-                      >
-                        Open pending orders
-                      </Button>
-                      <Button
-                        className="transition-all duration-200 hover:-translate-y-0.5"
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setActivePanel("orders");
-                          setOrderStatusFilter("all");
-                          setOrderDateFilter("");
-                          setOrdersPage(1);
-                        }}
-                      >
-                        Clear filters
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  operationsDateOrders.map((item) => (
-                    <div key={`ops-order-${item.id}`} className="rounded-xl border border-line/70 bg-panel/92 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-ink">{item.orderCode || item.id} · {item.name || "Customer"}</p>
-                        <StatusPill value={item.status || "pending"} />
-                      </div>
-                      <p className="mt-1 text-xs text-ink-soft">{formatCurrency(item.totalAmount || 0)} · {item.deliverySpeed || "standard"}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-            <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.15em] text-ink-soft">DAILY REVENUE SIGNAL</span>
-            <span>Estimated booked/order value: <strong className="text-ink">{formatCurrency(operationsRevenue)}</strong></span>
-          </div>
-          </div>
-        </details>
-
-        <details className="rounded-[1.2rem] border border-white/30 bg-panel/88 shadow-xl backdrop-blur-md open:shadow-2xl open:shadow-brand/10 transition-all duration-300">
-          <summary className="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Customer pulse</p>
-                <p className="text-sm font-semibold text-ink">Top returning customers</p>
-              </div>
-              <span className="rounded-full border border-line/70 bg-panel px-3 py-1 text-[11px] font-semibold text-ink-soft">Expand</span>
-            </div>
-          </summary>
-          <div className="space-y-2 border-t border-line/50 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
-            {customerPulse.length === 0 ? (
-              <EmptyState title="No customer activity yet" description="Customer insights will appear as bookings and orders come in." />
-            ) : (
-              customerPulse.map((customer, index) => (
-                <div key={`${customer.email}-${index}`} className="rounded-xl border border-line/70 bg-panel/92 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-brand/10">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-ink">{customer.name}</p>
-                    <span className="text-xs text-ink-soft">{customer.visits} interactions</span>
-                  </div>
-                  <p className="mt-1 text-xs text-ink-soft">{customer.email}</p>
-                  <p className="mt-1 text-xs text-ink-soft">Estimated value: <strong className="text-ink">{formatCurrency(customer.value)}</strong></p>
-                </div>
-              ))
-            )}
-          </div>
-        </details>
-
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <button type="button" className={getPanelButtonClass("bookings")} onClick={() => setActivePanel("bookings")}>
-            <StatCard label="Bookings" value={dashboard.bookings.length} helper="Click to open" accent={activePanel === "bookings" ? "text-brand-deep" : ""} />
-          </button>
-          <button type="button" className={getPanelButtonClass("orders")} onClick={() => setActivePanel("orders")}>
-            <StatCard label="Orders" value={dashboard.orders.length} helper="Click to open" accent={activePanel === "orders" ? "text-brand-deep" : ""} />
-          </button>
-          <button type="button" className={getPanelButtonClass("messages")} onClick={() => setActivePanel("messages")}>
-            <StatCard
-              label="Messages"
-              value={dashboard.messages.length}
-              helper={unreadMessagesCount > 0 ? `${unreadMessagesCount} unread complaint(s)` : "All messages read"}
-              accent={activePanel === "messages" || unreadMessagesCount > 0 ? "text-brand-deep" : ""}
-            />
-          </button>
-          <button type="button" className={getPanelButtonClass("products")} onClick={() => setActivePanel("products")}>
-            <StatCard label="Products" value={dashboard.products.length} helper="Click to open" accent={activePanel === "products" ? "text-brand-deep" : ""} />
-          </button>
-          <StatCard label="Due now" value={formatCurrency(dueNowTotal)} />
-          <StatCard label="Order value" value={formatCurrency(orderRevenueTotal)} />
-        </div>
-
-        <details className="rounded-[1.2rem] border border-white/35 bg-panel/90 shadow-xl backdrop-blur-md open:shadow-2xl open:shadow-brand/10 transition-all duration-300">
-          <summary className="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Workspace structure</p>
-                <p className="text-sm font-semibold text-ink">Core admin work areas</p>
-              </div>
-              <span className="rounded-full border border-line/70 bg-panel px-3 py-1 text-[11px] font-semibold text-ink-soft">Expand</span>
-            </div>
-          </summary>
-          <div className="space-y-4 border-t border-line/50 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {ADMIN_PANEL_CONFIG.map((panel) => (
-              (() => {
-                const Icon = panel.icon;
-                return (
-                  <button
-                    key={panel.key}
-                    type="button"
-                    className={`rounded-[1.2rem] border px-4 py-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${activePanel === panel.key
-                      ? "border-brand/70 bg-brand-light/25 shadow-md"
-                      : "border-line/70 bg-panel/85 hover:bg-panel"}`}
-                    onClick={() => setActivePanel(panel.key)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className={`inline-flex rounded-xl p-2 ${activePanel === panel.key ? "bg-brand/20 text-brand-deep" : "bg-panel-strong/70 text-ink-soft"}`}>
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-ink">{panel.title}</p>
-                        <p className="mt-1 text-xs leading-5 text-ink-soft">{panel.description}</p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })()
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-            <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.18em] text-ink-soft">ACTIVE</span>
-            <span>Section: <strong className="text-ink">{activePanelTitle}</strong></span>
-            <span className="hidden h-1 w-1 rounded-full bg-ink-soft/60 sm:inline-block" />
-            <span>Last refreshed: {lastRefreshedAt ? new Date(lastRefreshedAt).toLocaleString() : "Not yet"}</span>
-          </div>
-          </div>
-        </details>
-
-        {!activePanel ? (
-          <EmptyState title="Pick a section" description="Click Bookings, Orders, Messages, or Products above to open management details." />
-        ) : null}
-
-        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md transition-all duration-300 hover:shadow-2xl hover:shadow-brand/10">
-          <SectionHeading
-            eyebrow="Operational snapshot"
-            title="Priority status"
-            description="Concise indicators for incoming work."
-          />
-          <div className="flex flex-wrap gap-3">
-            <StatusPill value={`${pendingBookings.length} pending bookings`} />
-            <StatusPill value={`${pendingOrders.length} pending orders`} />
-            <StatusPill value={`${dashboard.messages.length} inbox messages`} />
-            <StatusPill value={`${dashboard.products.length} active products`} />
-          </div>
-        </Surface>
-
-        <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl backdrop-blur-md transition-all duration-300 hover:shadow-2xl hover:shadow-brand/10">
-          <SectionHeading
-            eyebrow="Productivity"
-            title="Workspace tools"
-            description="View mode and quick exports."
-          />
-          <div className="flex flex-wrap items-center gap-3">
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant={viewMode === "cards" ? "default" : "outline"} onClick={() => setViewMode("cards")}>Cards view</Button>
-            <Button className="transition-all duration-200 hover:-translate-y-0.5" type="button" variant={viewMode === "compact" ? "default" : "outline"} onClick={() => setViewMode("compact")}>Compact view</Button>
-            <Button
-              className="transition-all duration-200 hover:-translate-y-0.5"
-              type="button"
-              variant="outline"
-              onClick={() => {
-                if (!filteredBookings.length) {
-                  setDashboardNotice({ tone: "error", message: "No filtered bookings available to export." });
-                  return;
-                }
-                downloadCsv("bookings-export.csv", filteredBookings.map((item) => ({
-                  id: item.id,
-                  name: item.name,
-                  phone: item.phone,
-                  service: item.serviceName,
-                  date: item.date,
-                  time: item.time,
-                  amountDueNow: item.amountDueNow,
-                  status: item.status
-                })));
-                setDashboardNotice({ tone: "success", message: "Bookings CSV exported." });
-              }}
-            >
-              Export bookings CSV
-            </Button>
-            <Button
-              className="transition-all duration-200 hover:-translate-y-0.5"
-              type="button"
-              variant="outline"
-              onClick={() => {
-                if (!filteredOrders.length) {
-                  setDashboardNotice({ tone: "error", message: "No filtered orders available to export." });
-                  return;
-                }
-                downloadCsv("orders-export.csv", filteredOrders.map((item) => ({
-                  id: item.id,
-                  orderCode: item.orderCode,
-                  customer: item.name,
-                  deliverySpeed: item.deliverySpeed,
-                  totalAmount: item.totalAmount,
-                  status: item.status
-                })));
-                setDashboardNotice({ tone: "success", message: "Orders CSV exported." });
-              }}
-            >
-              Export orders CSV
-            </Button>
-          </div>
-        </Surface>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <CollapsibleDashboardBox
-                      className={activePanel === "bookings" ? "" : "hidden"}
-                      title="New Bookings"
-                      count={pendingBookings.length + pendingOrders.length}
-                      color="bg-brand-light/20"
-                      headerColor="bg-brand-light/90"
-                      icon="🆕"
-                    >
-            <SectionHeading eyebrow="New Bookings & Orders" title="Incoming bookings and orders" description="Easily review new requests." />
-                      {newRequestEntries.length > 0 ? (
-                        <div className="mb-3 flex items-center justify-end gap-2">
-                          <label className="text-sm text-ink-soft" htmlFor="new-requests-page-size">Per page</label>
-                          <select
-                            id="new-requests-page-size"
-                            className="h-10 rounded-2xl border border-line bg-panel/92 px-3 text-sm text-ink"
-                            value={newRequestsPageSize}
-                            onChange={(event) => setNewRequestsPageSize(Number(event.target.value) || 8)}
-                          >
-                            {[5, 10, 20].map((size) => (
-                              <option key={size} value={size}>{size}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ) : null}
-                      <div className="space-y-3">
-                        {newRequestEntries.length === 0 && <EmptyState title="No new bookings/orders" description="All caught up!" />}
-                        {newRequestSlice.map((entry) => {
-                          if (entry.kind === "booking") {
-                            const item = entry.data;
-                            return (
-                              <div key={`new-booking-${item.id}`} className="rounded-[1.4rem] border border-brand-light bg-panel/92 p-4">
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                  <label className="inline-flex items-center gap-3">
-                                    <input type="checkbox" checked={selectedBookingIds.includes(item.id)} onChange={() => toggleSelection(item.id, setSelectedBookingIds)} />
-                                    <p className="font-semibold text-brand-dark">{item.name}</p>
-                                  </label>
-                                  <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center rounded-full bg-danger px-2 py-1 text-[10px] font-extrabold tracking-[0.18em] text-white shadow-sm">NEW</span>
-                                    <StatusPill value={item.status} />
-                                  </div>
-                                </div>
-                                <div className="mt-3 space-y-2">
-                                  <DetailRow label="Service" value={item.serviceName} />
-                                  <DetailRow label="When" value={`${item.date} ${item.time}`} />
-                                  <DetailRow label="Email" value={item.email || "N/A"} />
-                                  <DetailRow label="Phone" value={item.phone || "N/A"} />
-                                  <DetailRow label="Due now" value={formatCurrency(item.amountDueNow)} />
-                                </div>
-                                {renderBookingReplyComposer(item)}
-                              </div>
-                            );
-                          }
-
-                          const item = entry.data;
-                          const currentOrderStatus = normalizeStatus(item.status);
-                          const orderActionBusy = Boolean(orderActionBusyById[String(item.id) || ""]);
-                          const customerStatusEmailAt = item?.lastStatusEmailSentAt ? new Date(item.lastStatusEmailSentAt).toLocaleString() : "";
-                          return (
-                            <div key={`new-order-${item.id}`} className="rounded-[1.4rem] border border-brand-dark bg-panel/92 p-4">
-                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                <label className="inline-flex items-center gap-3">
-                                  <input type="checkbox" checked={selectedOrderIds.includes(item.id)} onChange={() => toggleSelection(item.id, setSelectedOrderIds)} />
-                                  <p className="font-semibold text-brand-dark">{item.orderCode}</p>
-                                </label>
-                                <div className="flex items-center gap-2">
-                                  <span className="inline-flex items-center rounded-full bg-danger px-2 py-1 text-[10px] font-extrabold tracking-[0.18em] text-white shadow-sm">NEW</span>
-                                  <StatusPill value={item.status} />
-                                </div>
-                              </div>
-                              <div className="mt-3 space-y-2">
-                                <DetailRow label="Customer" value={item.name} />
-                                <DetailRow label="Email" value={item.email || "N/A"} />
-                                <DetailRow label="Phone" value={item.phone || "N/A"} />
-                                <DetailRow label="Delivery speed" value={item.deliverySpeed} />
-                                <DetailRow label="Total" value={formatCurrency(item.totalAmount)} />
-                              </div>
-                              <div className="mt-3 rounded-xl border border-line/70 bg-panel/85 px-3 py-2">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Standard order flow</p>
-                                <p className="mt-1 text-xs text-ink-soft">{ORDER_STATUS_FLOW_TEXT}</p>
-                                {customerStatusEmailAt ? (
-                                  <p className="mt-1 text-xs text-success">Customer status email last sent: {customerStatusEmailAt}</p>
-                                ) : null}
-                              </div>
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <Button
-                                  type="button"
-                                  onClick={() => saveOrder(item.id, "approved", { source: "queue" })}
-                                  disabled={orderActionBusy || ["approved", "processed", "shipped", "on_the_way", "delivered"].includes(currentOrderStatus)}
-                                >
-                                  {orderActionBusy ? "Updating..." : "Approve order"}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => saveOrder(item.id, "cancelled", { source: "queue" })}
-                                  disabled={orderActionBusy || currentOrderStatus === "cancelled"}
-                                >
-                                  Cancel order
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setActivePanel("orders");
-                                    setOrderSearch(String(item.orderCode || item.id || ""));
-                                    setOrderStatusFilter("all");
-                                    setOrdersPage(1);
-                                  }}
-                                >
-                                  Open full workflow
-                                </Button>
-                              </div>
-                              {renderOrderContactActions(item)}
-                              {renderOrderReplyComposer(item)}
-                            </div>
-                          );
-                        })}
-                        {newRequestEntries.length > 0 ? (
-                          <div className="flex justify-between items-center mt-4">
-                            <Button type="button" variant="outline" disabled={newRequestsPage === 1} onClick={() => setNewRequestsPage(newRequestsPage - 1)}>Previous</Button>
-                            <span className="text-sm">Page {newRequestsPage} of {newRequestPages}</span>
-                            <Button type="button" variant="outline" disabled={newRequestsPage >= newRequestPages} onClick={() => setNewRequestsPage(newRequestsPage + 1)}>Next</Button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </CollapsibleDashboardBox>
-          <CollapsibleDashboardBox
-            className={activePanel === "bookings" ? "" : "hidden"}
-            title="Bookings"
-            count={dashboard.bookings.length}
-            color="bg-brand-light/10"
-            headerColor="bg-brand-light/80"
-            icon="📖"
+      <div className="relative z-10 mx-auto max-w-[100rem]">
+        <AdminDashboardProvider value={dashboardContextValue}>
+          <AdminLayout
+            activeSection={activeSection}
+            sections={ADMIN_SECTIONS}
+            counts={sectionCounts}
+            queueCount={pendingBookings.length + pendingOrders.length}
+            adminName={adminIdentity?.name || "Admin"}
+            adminRole={adminRole}
+            adminNow={adminNow}
+            adminWeather={adminWeather}
+            loadingDashboard={loadingDashboard}
+            onRefresh={refreshDashboard}
+            autoRefreshEnabled={autoRefreshEnabled}
+            onToggleAutoRefresh={toggleAutoRefresh}
+            onSignOut={handleSignOut}
+            lastRefreshedAt={lastRefreshedAt}
           >
-              <SectionHeading eyebrow="Bookings" title="Update booking status" description="Each card is rendered directly in React." />
-            <div className="grid gap-4 rounded-[1.2rem] border border-line/70 bg-panel/85 p-4 lg:grid-cols-2">
-              <div className="space-y-3 rounded-xl border border-warning/35 bg-warning/5 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-ink">Pending approval</p>
-                  <StatusPill value={`${pendingApprovalBookings.length} pending`} />
-                </div>
-                {pendingApprovalBookings.length === 0 ? (
-                  <p className="text-xs text-ink-soft">No booking is waiting for approval.</p>
-                ) : (
-                  pendingApprovalBookings.slice(0, 4).map((item) => {
-                    const bookingId = String(item.id || "");
-                    const actionBusy = Boolean(bookingActionBusyById[bookingId]);
-                    return (
-                      <div key={`pending-approval-${item.id}`} className="rounded-lg border border-warning/30 bg-panel/92 p-3">
-                        <p className="text-sm font-semibold text-ink">{item.name || "Customer"}</p>
-                        <p className="mt-1 text-xs text-ink-soft">{item.serviceName || "Service"} · {item.date || ""} {item.time || ""}</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            onClick={() => saveBooking(item.id, "approved", { source: "approval-queue" })}
-                            disabled={actionBusy}
-                          >
-                            {actionBusy ? "Approving..." : "Approve booking"}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setFocusedBookingId(String(item.id || ""));
-                              setBookingSearch(String(item.name || item.phone || item.id || ""));
-                              setBookingStatusFilter("all");
-                              setBookingsPage(1);
-                            }}
-                          >
-                            Open details
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              <div className="space-y-3 rounded-xl border border-success/35 bg-success/5 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-ink">Approved bookings</p>
-                  <StatusPill value={`${approvedBookings.length} approved`} />
-                </div>
-                {approvedBookings.length === 0 ? (
-                  <p className="text-xs text-ink-soft">Approved bookings will appear here.</p>
-                ) : (
-                  approvedBookings.slice(0, 4).map((item) => (
-                    <div key={`approved-booking-${item.id}`} className="rounded-lg border border-success/30 bg-panel/92 p-3">
-                      <p className="text-sm font-semibold text-ink">{item.name || "Customer"}</p>
-                      <p className="mt-1 text-xs text-ink-soft">{item.serviceName || "Service"} · {item.date || ""} {item.time || ""}</p>
-                      <p className="mt-1 text-[11px] text-success">Approved by admin workflow</p>
-                    </div>
-                  ))
-                )}
-              </div>
+            <div className="space-y-4">
+              <Notice tone={dashboardNotice?.tone} message={dashboardNotice?.message} />
+              <Notice tone={moderationNotice?.tone} message={moderationNotice?.message} />
+              <Outlet />
             </div>
-            {focusedBooking ? (
-              <div className="rounded-[1.2rem] border border-brand/35 bg-panel/90 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-ink">Booker details</p>
-                  <div className="flex items-center gap-2">
-                    <StatusPill value={focusedBooking.status || "pending"} />
-                    <Button type="button" variant="outline" onClick={() => setFocusedBookingId("")}>Close details</Button>
-                  </div>
-                </div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <DetailRow label="Booking ID" value={focusedBooking.id || "N/A"} />
-                  <DetailRow label="Name" value={focusedBooking.name || "N/A"} />
-                  <DetailRow label="Email" value={focusedBooking.email || "N/A"} />
-                  <DetailRow label="Phone" value={focusedBooking.phone || "N/A"} />
-                  <DetailRow label="Service" value={focusedBooking.serviceName || "N/A"} />
-                  <DetailRow label="Scheduled" value={`${focusedBooking.date || ""} ${focusedBooking.time || ""}`.trim() || "N/A"} />
-                  <DetailRow label="Payment method" value={focusedBooking.paymentMethod || "N/A"} />
-                  <DetailRow label="Amount due now" value={formatCurrency(focusedBooking.amountDueNow || 0)} />
-                </div>
-              </div>
-            ) : null}
-            <div className="grid gap-3 md:grid-cols-3">
-              <input
-                className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink"
-                placeholder="Search by name, phone, service, ID"
-                value={bookingSearch}
-                onChange={(event) => setBookingSearch(event.target.value)}
-              />
-              <select className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink" value={bookingStatusFilter} onChange={(event) => setBookingStatusFilter(event.target.value)}>
-                <option value="all">All statuses</option>
-                {BOOKING_STATUSES.map((status) => <option key={status} value={status}>{BOOKING_STATUS_LABELS[status] || status}</option>)}
-              </select>
-              <input
-                type="date"
-                className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink"
-                value={bookingDateFilter}
-                onChange={(event) => setBookingDateFilter(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-              <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.15em] text-ink-soft">Quick filters</span>
-              <Button type="button" variant="outline" onClick={() => { setBookingStatusFilter("pending"); setBookingsPage(1); }}>Pending</Button>
-              <Button type="button" variant="outline" onClick={() => { setBookingStatusFilter("approved"); setBookingsPage(1); }}>Approved</Button>
-              <Button type="button" variant="outline" onClick={() => { setBookingStatusFilter("completed"); setBookingsPage(1); }}>Completed</Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setBookingStatusFilter("all");
-                  setBookingDateFilter("");
-                  setBookingSearch("");
-                  setBookingsPage(1);
-                }}
-              >
-                Reset filters
-              </Button>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  const pageIds = bookingSlice.map((item) => item.id);
-                  const hasUnselected = pageIds.some((id) => !selectedBookingIds.includes(id));
-                  setSelectedBookingIds((prev) => (hasUnselected ? [...new Set([...prev, ...pageIds])] : prev.filter((id) => !pageIds.includes(id))));
-                }}
-              >
-                {bookingSlice.some((item) => !selectedBookingIds.includes(item.id)) ? "Select page" : "Unselect page"}
-              </Button>
-              <select className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink" value={bulkBookingStatus} onChange={(event) => setBulkBookingStatus(event.target.value)}>
-                {BOOKING_STATUSES.map((status) => <option key={status} value={status}>{BOOKING_STATUS_LABELS[status] || status}</option>)}
-              </select>
-              <Button type="button" onClick={applyBulkBookingStatus} disabled={loadingDashboard || !selectedBookingCount}>
-                Apply to {selectedBookingCount || 0} booking(s)
-              </Button>
-            </div>
-            {bookingSlice.length === 0 ? <EmptyState title="No bookings yet" description="Bookings will appear here as customers submit requests." /> : null}
-            {viewMode === "cards" ? bookingSlice.map((item) => (
-              <div key={item.id} className="rounded-[1.4rem] border border-line/70 bg-panel/92 p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="inline-flex items-center gap-3">
-                    <input type="checkbox" checked={selectedBookingIds.includes(item.id)} onChange={() => toggleSelection(item.id, setSelectedBookingIds)} />
-                    <p className="font-semibold text-ink">{item.name}</p>
-                  </label>
-                  <StatusPill value={item.status} />
-                </div>
-                <div className="mt-3 space-y-2">
-                  <DetailRow label="Service" value={item.serviceName} />
-                  <DetailRow label="When" value={`${item.date} ${item.time}`} />
-                  <DetailRow label="Email" value={item.email || "N/A"} />
-                  <DetailRow label="Phone" value={item.phone || "N/A"} />
-                  <DetailRow label="Due now" value={formatCurrency(item.amountDueNow)} />
-                </div>
-                <div className="mt-4 flex gap-3">
-                  <select className="h-11 flex-1 rounded-[1.4rem] border border-line bg-panel/92 px-4 text-ink" value={item.status} onChange={(event) => saveBooking(item.id, event.target.value)}>
-                    {BOOKING_STATUSES.map((status) => <option key={status} value={status}>{BOOKING_STATUS_LABELS[status] || status}</option>)}
-                  </select>
-                </div>
-                {renderBookingReplyComposer(item)}
-              </div>
-            )) : (
-              <div className="mt-3 space-y-2">
-                {bookingSlice.map((item) => (
-                  <div key={item.id} className="grid gap-3 rounded-[1.1rem] border border-line/70 bg-panel/92 p-3 md:grid-cols-[auto,1fr,auto,auto] md:items-center">
-                    <input type="checkbox" checked={selectedBookingIds.includes(item.id)} onChange={() => toggleSelection(item.id, setSelectedBookingIds)} />
-                    <div>
-                      <p className="font-semibold text-ink">{item.name} · {item.serviceName}</p>
-                      <p className="text-sm text-ink-soft">{item.date} {item.time} · {formatCurrency(item.amountDueNow)}</p>
-                      <p className="text-xs text-ink-soft">{item.email || "N/A"} · {item.phone || "N/A"}</p>
-                    </div>
-                    <StatusPill value={item.status} />
-                    <select className="h-10 rounded-[0.9rem] border border-line bg-panel/92 px-3 text-sm text-ink" value={item.status} onChange={(event) => saveBooking(item.id, event.target.value)}>
-                      {BOOKING_STATUSES.map((status) => <option key={status} value={status}>{BOOKING_STATUS_LABELS[status] || status}</option>)}
-                    </select>
-                    <div className="md:col-span-4">
-                      {renderBookingReplyComposer(item)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex justify-between items-center mt-4">
-              <Button type="button" variant="outline" disabled={bookingsPage === 1} onClick={() => setBookingsPage(bookingsPage - 1)}>Previous</Button>
-              <span className="text-sm">Page {bookingsPage} of {bookingPages}</span>
-              <Button type="button" variant="outline" disabled={bookingsPage >= bookingPages} onClick={() => setBookingsPage(bookingsPage + 1)}>Next</Button>
-            </div>
-          </CollapsibleDashboardBox>
-
-          <CollapsibleDashboardBox
-            className={activePanel === "orders" ? "" : "hidden"}
-            title="Orders"
-            count={dashboard.orders.length}
-            color="bg-brand-dark/10"
-            headerColor="bg-brand-dark/80"
-            icon="🛒"
-          >
-              <SectionHeading eyebrow="Orders" title="Update order status" description="Dispatch state is handled from React without the old sidebar markup." />
-            <div className="grid gap-3 md:grid-cols-3">
-              <input
-                className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink"
-                placeholder="Search by order code, customer, speed"
-                value={orderSearch}
-                onChange={(event) => setOrderSearch(event.target.value)}
-              />
-              <select className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink" value={orderStatusFilter} onChange={(event) => setOrderStatusFilter(event.target.value)}>
-                <option value="all">All statuses</option>
-                {ORDER_STATUSES.map((status) => <option key={status} value={status}>{getOrderStatusLabel(status)}</option>)}
-              </select>
-              <input
-                type="date"
-                className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink"
-                value={orderDateFilter}
-                onChange={(event) => setOrderDateFilter(event.target.value)}
-              />
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  const pageIds = orderSlice.map((item) => item.id);
-                  const hasUnselected = pageIds.some((id) => !selectedOrderIds.includes(id));
-                  setSelectedOrderIds((prev) => (hasUnselected ? [...new Set([...prev, ...pageIds])] : prev.filter((id) => !pageIds.includes(id))));
-                }}
-              >
-                {orderSlice.some((item) => !selectedOrderIds.includes(item.id)) ? "Select page" : "Unselect page"}
-              </Button>
-              <select className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink" value={bulkOrderStatus} onChange={(event) => setBulkOrderStatus(event.target.value)}>
-                {ORDER_STATUSES.map((status) => <option key={status} value={status}>{getOrderStatusLabel(status)}</option>)}
-              </select>
-              <Button type="button" onClick={applyBulkOrderStatus} disabled={loadingDashboard || !selectedOrderCount}>
-                Apply to {selectedOrderCount || 0} order(s)
-              </Button>
-            </div>
-            {orderSlice.length === 0 ? <EmptyState title="No orders yet" description="Product orders will appear here once customers place them." /> : null}
-            {viewMode === "cards" ? orderSlice.map((item) => (
-              <div key={item.id} className="rounded-[1.4rem] border border-line/70 bg-panel/92 p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="inline-flex items-center gap-3">
-                    <input type="checkbox" checked={selectedOrderIds.includes(item.id)} onChange={() => toggleSelection(item.id, setSelectedOrderIds)} />
-                    <p className="font-semibold text-ink">{item.orderCode}</p>
-                  </label>
-                  <StatusPill value={item.status} />
-                </div>
-                <div className="mt-3 space-y-2">
-                  <DetailRow label="Customer" value={item.name} />
-                  <DetailRow label="Email" value={item.email || "N/A"} />
-                  <DetailRow label="Phone" value={item.phone || "N/A"} />
-                  <DetailRow label="Delivery speed" value={item.deliverySpeed} />
-                  <DetailRow label="Total" value={formatCurrency(item.totalAmount)} />
-                </div>
-                <div className="mt-4 flex gap-3">
-                  <select className="h-11 flex-1 rounded-[1.4rem] border border-line bg-panel/92 px-4 text-ink" value={item.status} onChange={(event) => saveOrder(item.id, event.target.value, { source: "orders-panel" })}>
-                    {ORDER_STATUSES.map((status) => <option key={status} value={status}>{getOrderStatusLabel(status)}</option>)}
-                  </select>
-                </div>
-                {renderOrderContactActions(item)}
-                {renderOrderReplyComposer(item)}
-              </div>
-            )) : (
-              <div className="mt-3 space-y-2">
-                {orderSlice.map((item) => (
-                  <div key={item.id} className="grid gap-3 rounded-[1.1rem] border border-line/70 bg-panel/92 p-3 md:grid-cols-[auto,1fr,auto,auto] md:items-center">
-                    <input type="checkbox" checked={selectedOrderIds.includes(item.id)} onChange={() => toggleSelection(item.id, setSelectedOrderIds)} />
-                    <div>
-                      <p className="font-semibold text-ink">{item.orderCode} · {item.name}</p>
-                      <p className="text-sm text-ink-soft">{item.deliverySpeed} · {formatCurrency(item.totalAmount)}</p>
-                      <p className="text-xs text-ink-soft">{item.email || "N/A"} · {item.phone || "N/A"}</p>
-                    </div>
-                    <StatusPill value={item.status} />
-                    <select className="h-10 rounded-[0.9rem] border border-line bg-panel/92 px-3 text-sm text-ink" value={item.status} onChange={(event) => saveOrder(item.id, event.target.value, { source: "orders-panel" })}>
-                      {ORDER_STATUSES.map((status) => <option key={status} value={status}>{getOrderStatusLabel(status)}</option>)}
-                    </select>
-                    <div className="md:col-span-4">
-                      {renderOrderContactActions(item)}
-                      {renderOrderReplyComposer(item)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex justify-between items-center mt-4">
-              <Button type="button" variant="outline" disabled={ordersPage === 1} onClick={() => setOrdersPage(ordersPage - 1)}>Previous</Button>
-              <span className="text-sm">Page {ordersPage} of {orderPages}</span>
-              <Button type="button" variant="outline" disabled={ordersPage >= orderPages} onClick={() => setOrdersPage(ordersPage + 1)}>Next</Button>
-            </div>
-          </CollapsibleDashboardBox>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <CollapsibleDashboardBox
-            className={activePanel === "products" ? "" : "hidden"}
-            title="Products"
-            count={dashboard.products.length}
-            color="bg-brand-light/10"
-            headerColor="bg-brand-light/80"
-            icon="📦"
-          >
-            <SectionHeading eyebrow="Products" title="Add a product" description="Simple React form for product creation." />
-            <form className="space-y-4" onSubmit={handleAddProduct}>
-              <TextField label="Name" id="product-name" required placeholder="e.g. Premium Hair Serum" value={productForm.name} onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))} />
-              <TextField label="Category" id="product-category" required placeholder="e.g. Hair care" value={productForm.category} onChange={(event) => setProductForm((prev) => ({ ...prev, category: event.target.value }))} />
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextField label="Price" id="product-price" type="number" required placeholder="0.00" value={productForm.price} onChange={(event) => setProductForm((prev) => ({ ...prev, price: event.target.value }))} />
-                <TextField label="Stock" id="product-stock" type="number" required placeholder="0" value={productForm.stock} onChange={(event) => setProductForm((prev) => ({ ...prev, stock: event.target.value }))} />
-              </div>
-              <div>
-                <label htmlFor="product-image" className="block font-semibold mb-2">Product Image</label>
-                <input
-                  id="product-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    setProductForm(prev => ({ ...prev, image: file }));
-                    setProductImagePreview(file ? URL.createObjectURL(file) : null);
-                  }}
-                  className="block w-full border border-line rounded-[1.4rem] px-3 py-2 bg-panel/92"
-                />
-                {productImagePreview && (
-                  <img src={productImagePreview} alt="Preview" className="mt-3 rounded-lg max-h-40 object-contain border border-line" />
-                )}
-              </div>
-              <Button className="w-full sm:w-auto" type="submit">Add product</Button>
-            </form>
-            <div className="space-y-3">
-              {dashboard.products.length === 0 ? <EmptyState title="No products yet" description="Add a product to publish it in your storefront." /> : null}
-              {dashboard.products.map((item) => (
-                <div key={item.id} className="rounded-[1.4rem] border border-line/70 bg-panel/92 p-4 flex gap-4 items-center">
-                  {item.image && (
-                    <img
-                      src={resolveMediaSrc(item.image) || undefined}
-                      alt={item.name}
-                      className="w-20 h-20 object-cover rounded-lg border border-line"
-                      style={{ background: '#f8f8f8' }}
-                    />
-                  )}
-                  <div className="flex-1">
-                    <DetailRow label={item.name} value={formatCurrency(item.price)} />
-                    <p className="mt-2 text-sm text-ink-soft">{item.category} | Stock: {item.stock}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CollapsibleDashboardBox>
-
-          <CollapsibleDashboardBox
-            className={activePanel === "messages" ? "" : "hidden"}
-            title="Messages & Settings"
-            count={dashboard.messages.length}
-            color="bg-brand-deep/10"
-            headerColor="bg-brand-deep/80"
-            icon="💬"
-          >
-            <SectionHeading eyebrow="Settings" title="Delivery fees and messages" description="Current admin essentials without the legacy panel layout." />
-            <form className="space-y-4" onSubmit={saveFees}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextField label="Standard fee" id="fee-standard" type="number" min="0" step="100" required value={feeForm.standard} onChange={(event) => setFeeForm((prev) => ({ ...prev, standard: event.target.value }))} />
-                <TextField label="Express fee" id="fee-express" type="number" min="0" step="100" required value={feeForm.express} onChange={(event) => setFeeForm((prev) => ({ ...prev, express: event.target.value }))} />
-              </div>
-              <Button className="w-full sm:w-auto" type="submit" disabled={savingFees}>{savingFees ? "Saving fees..." : "Save fees"}</Button>
-            </form>
-            <div className="grid gap-3 md:grid-cols-3">
-              <input
-                className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink"
-                placeholder="Search complaints/messages"
-                value={messageSearch}
-                onChange={(event) => setMessageSearch(event.target.value)}
-              />
-              <select className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink" value={messageTypeFilter} onChange={(event) => setMessageTypeFilter(event.target.value)}>
-                <option value="all">All types</option>
-                <option value="complaints">Complaints only</option>
-                <option value="messages">Messages only</option>
-              </select>
-              <select className="h-11 rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink" value={messageStatusFilter} onChange={(event) => setMessageStatusFilter(event.target.value)}>
-                <option value="all">All</option>
-                <option value="unread">Unread</option>
-                <option value="read">Read</option>
-              </select>
-            </div>
-            <div className="space-y-3">
-              {filteredMessages.length === 0 ? <EmptyState title="Inbox clear" description="No records match this message/complaint filter." /> : null}
-              {filteredMessages.map((item) => (
-                <div key={item.id} className="rounded-[1.4rem] border border-line/70 bg-panel/92 p-4">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="font-semibold text-ink">{item.subject}</p>
-                    <StatusPill value={item.status} />
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <StatusPill value={item.reportType || "general_message"} />
-                    <span className="text-xs text-ink-soft">{item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-ink-soft">{item.email}</p>
-                  <p className="mt-2 text-sm leading-6 text-ink">{item.message}</p>
-                  {item.reportFile ? (
-                    <p className="mt-2 text-sm">
-                      <a className="font-semibold text-brand-deep underline" href={item.reportFile} target="_blank" rel="noreferrer">Open complaint attachment</a>
-                    </p>
-                  ) : null}
-                  {renderMessageReplyComposer(item)}
-                </div>
-              ))}
-            </div>
-          </CollapsibleDashboardBox>
-        </div>
-      </div>
+          </AdminLayout>
+        </AdminDashboardProvider>
       </div>
     </div>
   );
 }
+

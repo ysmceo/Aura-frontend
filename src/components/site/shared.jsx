@@ -49,26 +49,26 @@ export function Surface({ className, children }) {
 export function SectionHeading({ eyebrow, title, description, action }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="max-w-2xl space-y-3">
+      <div className="min-w-0 max-w-2xl space-y-3">
         {eyebrow ? (
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-deep/75">{eyebrow}</p>
         ) : null}
         <div className="space-y-2">
-          <h2 className="font-display text-3xl leading-none text-ink sm:text-4xl lg:text-5xl">{title}</h2>
+          <h2 className="font-display text-2xl leading-none text-ink sm:text-4xl lg:text-5xl">{title}</h2>
           {description ? <p className="text-sm leading-6 text-ink-soft sm:text-base">{description}</p> : null}
         </div>
       </div>
-      {action ? <div>{action}</div> : null}
+      {action ? <div className="w-full sm:w-auto">{action}</div> : null}
     </div>
   );
 }
 
 export function StatCard({ label, value, accent, helper }) {
   return (
-    <div className="rounded-[1.55rem] border border-line/80 bg-panel/92 px-4 py-4 shadow-soft sm:px-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-soft">{label}</p>
-      <p className={cn("mt-3 text-2xl font-semibold text-ink sm:text-3xl", accent)}>{value}</p>
-      {helper ? <p className="mt-2 text-sm text-ink-soft">{helper}</p> : null}
+    <div className="min-w-0 overflow-hidden rounded-[1.55rem] border border-line/80 bg-panel/92 px-4 py-4 shadow-soft sm:px-5">
+      <p className="break-words text-xs font-semibold uppercase tracking-[0.25em] text-ink-soft">{label}</p>
+      <p className={cn("mt-3 break-words text-xl font-semibold text-ink sm:text-3xl", accent)}>{value}</p>
+      {helper ? <p className="mt-2 break-words text-sm leading-5 text-ink-soft">{helper}</p> : null}
     </div>
   );
 }
@@ -137,9 +137,9 @@ export function Notice({ tone = "info", message, className }) {
 
 export function DetailRow({ label, value, className }) {
   return (
-    <div className={cn("flex flex-col items-start justify-between gap-1 text-sm sm:flex-row sm:items-center sm:gap-4", className)}>
-      <span className="text-ink-soft">{label}</span>
-      <span className="text-left font-semibold text-ink sm:text-right">{value}</span>
+    <div className={cn("flex min-w-0 flex-col items-start justify-between gap-1 text-sm sm:flex-row sm:items-center sm:gap-4", className)}>
+      <span className="break-words text-ink-soft">{label}</span>
+      <span className="break-words text-left font-semibold text-ink sm:max-w-[58%] sm:text-right">{value}</span>
     </div>
   );
 }

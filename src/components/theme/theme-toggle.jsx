@@ -3,7 +3,7 @@ import { MoonStar, SunMedium } from "lucide-react";
 import { useTheme } from "@/components/theme/use-theme";
 import { cn } from "@/lib/utils";
 
-export function ThemeToggle({ className }) {
+export function ThemeToggle({ className, compact = false }) {
   const { theme, toggleTheme } = useTheme();
   const nextTheme = theme === "dark" ? "light" : "dark";
 
@@ -11,7 +11,7 @@ export function ThemeToggle({ className }) {
     <button
       aria-label={`Switch to ${nextTheme} mode`}
       aria-pressed={theme === "dark"}
-      className={cn("theme-toggle shrink-0", className)}
+      className={cn("theme-toggle shrink-0", compact && "theme-toggle--compact", className)}
       onClick={toggleTheme}
       title={`Switch to ${nextTheme} mode`}
       type="button"

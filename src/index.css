@@ -265,6 +265,29 @@ html.dark .theme-toggle__icon--moon {
   transform: rotate(12deg);
 }
 
+.theme-toggle--compact {
+  height: 2.2rem;
+  width: 3.7rem;
+  gap: 0.25rem;
+  padding: 0.3rem 0.35rem;
+}
+
+.theme-toggle--compact .theme-toggle__thumb {
+  left: 0.24rem;
+  top: 0.24rem;
+  height: 1.7rem;
+  width: 1.7rem;
+}
+
+html.dark .theme-toggle--compact .theme-toggle__thumb {
+  transform: translateX(1.52rem);
+}
+
+.theme-toggle--compact .theme-toggle__icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
 .route-rail {
   -ms-overflow-style: none;
 }
