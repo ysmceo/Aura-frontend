@@ -1,4 +1,5 @@
-import { Users } from "lucide-react";
+import { ChevronDown, ChevronRight, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,19 @@ import {
 import { formatCurrency } from "@/lib/site";
 import { ORDER_STATUS_FLOW_TEXT } from "@/components/admin/admin-config";
 import { useAdminDashboard } from "@/components/admin/AdminDashboardContext";
+
+const OVERVIEW_SECTION_STORAGE_KEY = "admin.overview.sectionOpenState.v1";
+
+const DEFAULT_SECTION_OPEN_STATE = {
+  dailyExecution: true,
+  operationalIndicators: false,
+  operationsBoard: false,
+  newRequests: false,
+  executivePulse: false,
+  customerPulse: false,
+  workflowShortcuts: false,
+  workspaceTools: false
+};
 
 export default function OverviewSection() {
   const {
@@ -91,6 +105,46 @@ export default function OverviewSection() {
     setOrdersPage
   } = useAdminDashboard();
 
+  const [sectionOpenState, setSectionOpenState] = useState(() => {
+    if (typeof window === "undefined") {
+      return DEFAULT_SECTION_OPEN_STATE;
+    }
+    try {
+      const rawState = window.localStorage.getItem(OVERVIEW_SECTION_STORAGE_KEY);
+      if (!rawState) {
+        return DEFAULT_SECTION_OPEN_STATE;
+      }
+      const parsedState = JSON.parse(rawState);
+      if (!parsedState || typeof parsedState !== "object") {
+        return DEFAULT_SECTION_OPEN_STATE;
+      }
+      return {
+        ...DEFAULT_SECTION_OPEN_STATE,
+        ...parsedState
+      };
+    } catch {
+      return DEFAULT_SECTION_OPEN_STATE;
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    try {
+      window.localStorage.setItem(OVERVIEW_SECTION_STORAGE_KEY, JSON.stringify(sectionOpenState));
+    } catch {
+      // Ignore storage write failures (private mode, quota, etc.).
+    }
+  }, [sectionOpenState]);
+
+  const toggleSectionOpen = (key) => {
+    setSectionOpenState((prev) => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <Surface className="space-y-5 border-white/35 bg-linear-to-r from-panel/96 via-panel/92 to-panel-strong/84 shadow-xl">
@@ -151,34 +205,44 @@ export default function OverviewSection() {
               eyebrow="Quick actions"
               title="Daily execution"
               description="Move directly into the workflow that needs attention."
+              action={
+                <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => toggleSectionOpen("dailyExecution")}>
+                  {sectionOpenState.dailyExecution ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                  {sectionOpenState.dailyExecution ? "Collapse" : "Expand"}
+                </Button>
+              }
             />
-            <div className="flex flex-wrap gap-2">
-              <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={focusPendingBookings}>
-                Pending bookings ({pendingBookings.length})
-              </Button>
-              <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={focusPendingOrders}>
-                Pending orders ({pendingOrders.length})
-              </Button>
-              <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={focusUnreadMessages}>
-                Unread messages ({unreadMessagesCount})
-              </Button>
-              <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={focusProductsManagement}>
-                Manage products
-              </Button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-              <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.15em] text-ink-soft">
-                SERVICE QUALITY
-              </span>
-              <span>
-                Overdue pending items (&gt;24h):{" "}
-                <strong className={overduePendingCount > 0 ? "text-warning" : "text-success"}>{overduePendingCount}</strong>
-              </span>
-              <span className="hidden h-1 w-1 rounded-full bg-ink-soft/60 sm:inline-block" />
-              <span>
-                Queue now: <strong className="text-ink">{pendingBookings.length + pendingOrders.length}</strong>
-              </span>
-            </div>
+            {sectionOpenState.dailyExecution ? (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={focusPendingBookings}>
+                    Pending bookings ({pendingBookings.length})
+                  </Button>
+                  <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={focusPendingOrders}>
+                    Pending orders ({pendingOrders.length})
+                  </Button>
+                  <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={focusUnreadMessages}>
+                    Unread messages ({unreadMessagesCount})
+                  </Button>
+                  <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={focusProductsManagement}>
+                    Manage products
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                  <span className="inline-flex rounded-full bg-panel px-3 py-1 font-semibold tracking-[0.15em] text-ink-soft">
+                    SERVICE QUALITY
+                  </span>
+                  <span>
+                    Overdue pending items (&gt;24h):{" "}
+                    <strong className={overduePendingCount > 0 ? "text-warning" : "text-success"}>{overduePendingCount}</strong>
+                  </span>
+                  <span className="hidden h-1 w-1 rounded-full bg-ink-soft/60 sm:inline-block" />
+                  <span>
+                    Queue now: <strong className="text-ink">{pendingBookings.length + pendingOrders.length}</strong>
+                  </span>
+                </div>
+              </>
+            ) : null}
           </Surface>
 
           <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl">
@@ -186,25 +250,33 @@ export default function OverviewSection() {
               eyebrow="Executive strip"
               title="Operational indicators"
               description="Compact KPIs for throughput, value, and queue health."
+              action={
+                <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => toggleSectionOpen("operationalIndicators")}>
+                  {sectionOpenState.operationalIndicators ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                  {sectionOpenState.operationalIndicators ? "Collapse" : "Expand"}
+                </Button>
+              }
             />
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Booking approval rate (day)</p>
-                <p className="mt-1 text-lg font-semibold text-ink">{operationsBookingApprovalRate}%</p>
+            {sectionOpenState.operationalIndicators ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Booking approval rate (day)</p>
+                  <p className="mt-1 text-lg font-semibold text-ink">{operationsBookingApprovalRate}%</p>
+                </div>
+                <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Average order value</p>
+                  <p className="mt-1 text-lg font-semibold text-ink">{formatCurrency(averageOrderValue)}</p>
+                </div>
+                <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Queue health</p>
+                  <p className={`mt-1 text-lg font-semibold ${executiveHealthSignal.tone}`}>{executiveHealthSignal.label}</p>
+                </div>
+                <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Automation</p>
+                  <p className="mt-1 text-lg font-semibold text-ink">{autoRefreshEnabled ? "Auto-refreshing" : "Manual refresh"}</p>
+                </div>
               </div>
-              <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Average order value</p>
-                <p className="mt-1 text-lg font-semibold text-ink">{formatCurrency(averageOrderValue)}</p>
-              </div>
-              <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Queue health</p>
-                <p className={`mt-1 text-lg font-semibold ${executiveHealthSignal.tone}`}>{executiveHealthSignal.label}</p>
-              </div>
-              <div className="rounded-xl border border-line/70 bg-panel/92 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Automation</p>
-                <p className="mt-1 text-lg font-semibold text-ink">{autoRefreshEnabled ? "Auto-refreshing" : "Manual refresh"}</p>
-              </div>
-            </div>
+            ) : null}
           </Surface>
 
           <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl">
@@ -212,8 +284,16 @@ export default function OverviewSection() {
               eyebrow="Operations board"
               title="Calendar execution and floor planning"
               description="Track daily bookings, staffing assignments, chair load, and order activity."
+              action={
+                <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => toggleSectionOpen("operationsBoard")}>
+                  {sectionOpenState.operationsBoard ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                  {sectionOpenState.operationsBoard ? "Collapse" : "Expand"}
+                </Button>
+              }
             />
 
+            {sectionOpenState.operationsBoard ? (
+            <>
             <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
               <div className="w-full sm:w-auto">
                 <label htmlFor="operations-date" className="mb-2 block text-sm font-semibold text-ink">
@@ -222,7 +302,7 @@ export default function OverviewSection() {
                 <input
                   id="operations-date"
                   type="date"
-                  className="h-11 w-full rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink sm:w-[12rem]"
+                  className="h-11 w-full rounded-[1.2rem] border border-line bg-panel/92 px-4 text-sm text-ink sm:w-48"
                   value={operationsDate}
                   onChange={(event) => setOperationsDate(event.target.value)}
                 />
@@ -505,14 +585,24 @@ export default function OverviewSection() {
                 Estimated booked/order value: <strong className="text-ink">{formatCurrency(operationsRevenue)}</strong>
               </span>
             </div>
+            </>
+            ) : null}
           </Surface>
           <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl">
             <SectionHeading
               eyebrow="Incoming work"
               title="New bookings and orders"
               description="Review newly submitted requests before moving into the full workflow."
+              action={
+                <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => toggleSectionOpen("newRequests")}>
+                  {sectionOpenState.newRequests ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                  {sectionOpenState.newRequests ? "Collapse" : "Expand"}
+                </Button>
+              }
             />
 
+            {sectionOpenState.newRequests ? (
+            <>
             {newRequestEntries.length > 0 ? (
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-end">
                 <label className="text-sm text-ink-soft" htmlFor="new-requests-page-size">
@@ -652,6 +742,8 @@ export default function OverviewSection() {
                 </div>
               ) : null}
             </div>
+            </>
+            ) : null}
           </Surface>
         </div>
         <div className="min-w-0 space-y-6">
@@ -660,8 +752,15 @@ export default function OverviewSection() {
               eyebrow="Insights"
               title="Executive pulse"
               description="Compact operational context for faster decisions."
+              action={
+                <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => toggleSectionOpen("executivePulse")}>
+                  {sectionOpenState.executivePulse ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                  {sectionOpenState.executivePulse ? "Collapse" : "Expand"}
+                </Button>
+              }
             />
 
+            {sectionOpenState.executivePulse ? (
             <div className="space-y-3">
               <div className="rounded-xl border border-brand/18 bg-linear-to-br from-panel/96 to-panel-strong/78 p-3 shadow-sm shadow-brand/8">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Access</p>
@@ -743,6 +842,7 @@ export default function OverviewSection() {
                 )}
               </div>
             </div>
+            ) : null}
           </Surface>
 
           <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl">
@@ -750,8 +850,14 @@ export default function OverviewSection() {
               eyebrow="Customer pulse"
               title="Top returning customers"
               description="Quick visibility into repeat activity and estimated customer value."
+              action={
+                <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => toggleSectionOpen("customerPulse")}>
+                  {sectionOpenState.customerPulse ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                  {sectionOpenState.customerPulse ? "Collapse" : "Expand"}
+                </Button>
+              }
             />
-            {customerPulse.length === 0 ? (
+            {sectionOpenState.customerPulse ? (customerPulse.length === 0 ? (
               <EmptyState title="No customer activity yet" description="Customer insights will appear as bookings and orders come in." />
             ) : (
               <div className="space-y-2">
@@ -768,7 +874,7 @@ export default function OverviewSection() {
                   </div>
                 ))}
               </div>
-            )}
+            )) : null}
           </Surface>
 
           <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl">
@@ -776,7 +882,14 @@ export default function OverviewSection() {
               eyebrow="Section shortcuts"
               title="Open a workflow"
               description="Move from the overview into a focused dashboard section."
+              action={
+                <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => toggleSectionOpen("workflowShortcuts")}>
+                  {sectionOpenState.workflowShortcuts ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                  {sectionOpenState.workflowShortcuts ? "Collapse" : "Expand"}
+                </Button>
+              }
             />
+            {sectionOpenState.workflowShortcuts ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <button type="button" className="text-left" onClick={focusPendingBookings}>
                 <StatCard label="Bookings" value={dashboard.bookings.length} helper="Open bookings" />
@@ -797,6 +910,7 @@ export default function OverviewSection() {
               <StatCard label="Due now" value={formatCurrency(dueNowTotal)} />
               <StatCard label="Order value" value={formatCurrency(orderRevenueTotal)} />
             </div>
+            ) : null}
           </Surface>
 
           <Surface className="space-y-4 border-white/30 bg-panel/88 shadow-xl">
@@ -804,7 +918,14 @@ export default function OverviewSection() {
               eyebrow="Workspace tools"
               title="View modes and exports"
               description="Adjust how list sections render and export the filtered datasets when needed."
+              action={
+                <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => toggleSectionOpen("workspaceTools")}>
+                  {sectionOpenState.workspaceTools ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                  {sectionOpenState.workspaceTools ? "Collapse" : "Expand"}
+                </Button>
+              }
             />
+            {sectionOpenState.workspaceTools ? (
             <div className="flex flex-wrap items-center gap-3">
               <Button className="w-full sm:w-auto" type="button" variant={viewMode === "cards" ? "default" : "outline"} onClick={() => setViewMode("cards")}>
                 Cards view
@@ -819,6 +940,7 @@ export default function OverviewSection() {
                 Export orders CSV
               </Button>
             </div>
+            ) : null}
           </Surface>
         </div>
       </div>

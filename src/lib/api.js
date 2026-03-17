@@ -215,7 +215,9 @@ export async function apiRequest(pathname, options = {}) {
     fetchError = error;
   }
 
-  if (!response && fallbackUrls.length > 0) {
+  const shouldTryLocalFallback = (!response || !response.ok) && fallbackUrls.length > 0;
+
+  if (shouldTryLocalFallback) {
     for (const candidate of fallbackUrls) {
       if (candidate === primaryUrl) {
         continue;

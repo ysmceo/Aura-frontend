@@ -49,6 +49,13 @@ function formatBookingLookupError(error) {
   return message || "Unable to load booking right now.";
 }
 
+function normalizeBookingStatus(status) {
+  const value = String(status || "").trim().toLowerCase();
+  if (value === "accepted") return "approved";
+  if (value === "declined") return "cancelled";
+  return value || "pending";
+}
+
 function TrackingHeroAside() {
   return (
     <div className="grid gap-4">
@@ -99,7 +106,7 @@ export default function TrackBooking() {
   }
 
   const booking = result?.booking;
-  const normalizedStatus = String(booking?.status || "pending").toLowerCase();
+  const normalizedStatus = normalizeBookingStatus(booking?.status);
 
   return (
     <SitePageShell
@@ -187,9 +194,16 @@ export default function TrackBooking() {
                 <DetailRow label="Client" value={booking.name || "Guest"} />
                 <DetailRow label="Email" value={booking.email || form.email} />
                 <DetailRow label="Scheduled time" value={formatDateTime(booking.bookingDateTime || booking.date)} />
+                <DetailRow label="Preferred staff" value={booking.selectedStaff || "Not set"} />
+                <DetailRow label="Service mode" value={booking.serviceMode === "home" ? "Home service" : "In-salon"} />
+                {booking.serviceMode === "home" ? (
+                  <DetailRow label="Home service address" value={booking.homeServiceAddress || "Not provided"} />
+                ) : null}
+                <DetailRow label="Refreshment" value={booking.refreshment || "No"} />
+                <DetailRow label="Special requests" value={booking.specialRequests || "None"} />
                 <div className="flex items-center justify-between gap-4 text-sm">
                   <span className="text-ink-soft">Status</span>
-                  <StatusPill value={booking.status || "pending"} />
+                  <StatusPill value={normalizedStatus || "pending"} />
                 </div>
               </div>
             ) : (

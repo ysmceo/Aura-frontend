@@ -72,6 +72,10 @@ export default function Book() {
     date: "",
     time: "",
     selectedStaff: "",
+    homeServiceRequested: "No",
+    homeServiceAddress: "",
+    refreshment: "No",
+    specialRequests: "",
     paymentMethod: "Bank Transfer",
     paymentPlan: "deposit_50",
     serviceIds: [],
@@ -184,6 +188,10 @@ export default function Book() {
     payload.append("date", booking.date);
     payload.append("time", booking.time);
     payload.append("selectedStaff", booking.selectedStaff);
+    payload.append("homeServiceRequested", String(booking.homeServiceRequested).toLowerCase() === "yes" ? "true" : "false");
+    payload.append("homeServiceAddress", booking.homeServiceAddress);
+    payload.append("refreshment", booking.refreshment);
+    payload.append("specialRequests", booking.specialRequests);
     payload.append("paymentMethod", booking.paymentMethod);
     payload.append("paymentPlan", booking.paymentPlan);
     payload.append("productSelections", JSON.stringify(buildSelectedItems(products, bookingProducts)));
@@ -404,6 +412,30 @@ export default function Book() {
                 ))}
               </SelectField>
               <SelectField
+                id="booking-home-service"
+                label="Home service"
+                onChange={(event) =>
+                  setBooking((current) => ({
+                    ...current,
+                    homeServiceRequested: event.target.value,
+                    homeServiceAddress: event.target.value === "Yes" ? current.homeServiceAddress : ""
+                  }))
+                }
+                value={booking.homeServiceRequested}
+              >
+                <option value="No">No (in-salon)</option>
+                <option value="Yes">Yes (home service)</option>
+              </SelectField>
+              <SelectField
+                id="booking-refreshment"
+                label="Refreshment"
+                onChange={(event) => setBooking((current) => ({ ...current, refreshment: event.target.value }))}
+                value={booking.refreshment}
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </SelectField>
+              <SelectField
                 id="booking-payment"
                 label="Payment method"
                 onChange={(event) => setBooking((current) => ({ ...current, paymentMethod: event.target.value }))}
@@ -426,6 +458,34 @@ export default function Book() {
               </SelectField>
             </div>
 
+            {booking.date && booking.selectedStaff && slots.length === 0 ? (
+              <Notice
+                tone="info"
+                message={`No available slots for ${booking.selectedStaff} on ${booking.date} yet. Please pick another date or staff.`}
+              />
+            ) : null}
+
+            {booking.homeServiceRequested === "Yes" ? (
+              <TextField
+                id="booking-home-address"
+                label="Home service address"
+                onChange={(event) => setBooking((current) => ({ ...current, homeServiceAddress: event.target.value }))}
+                required
+                value={booking.homeServiceAddress}
+              />
+            ) : null}
+
+            <Field htmlFor="booking-special-requests" label="Special requests" help="Optional notes for styling preferences, allergies, or other requests.">
+              <textarea
+                id="booking-special-requests"
+                className="w-full rounded-[1.15rem] border border-line bg-panel/90 px-4 py-3 text-sm text-ink focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
+                onChange={(event) => setBooking((current) => ({ ...current, specialRequests: event.target.value }))}
+                placeholder="Any additional requests for your appointment"
+                rows={3}
+                value={booking.specialRequests}
+              />
+            </Field>
+
             <Field help="Optional image upload for the style you want." htmlFor="booking-style-image" label="Style reference">
               <Input
                 accept="image/*"
@@ -441,7 +501,17 @@ export default function Book() {
               <ProductPicker onChange={(id, value) => setBookingProducts((current) => ({ ...current, [id]: value }))} products={products} quantities={bookingProducts} />
             </Field>
 
-            <Button className="w-full sm:w-auto" disabled={!booking.serviceIds.length || !booking.selectedStaff || submitting} type="submit">
+            <Button
+              className="w-full sm:w-auto"
+              disabled={
+                !booking.serviceIds.length ||
+                !booking.selectedStaff ||
+                !booking.time ||
+                (booking.homeServiceRequested === "Yes" && !String(booking.homeServiceAddress || "").trim()) ||
+                submitting
+              }
+              type="submit"
+            >
               {submitting
                 ? "Submitting..."
                 : isCashPayment
@@ -461,6 +531,9 @@ export default function Book() {
             <div className="space-y-3 rounded-3xl border border-line/70 bg-panel/92 px-5 py-4">
               <DetailRow label="Selected services" value={String(selectedServices.length)} />
               <DetailRow label="Preferred staff" value={booking.selectedStaff || "Not selected"} />
+              <DetailRow label="Time slot" value={booking.time || "Not selected"} />
+              <DetailRow label="Home service" value={booking.homeServiceRequested || "No"} />
+              <DetailRow label="Refreshment" value={booking.refreshment || "No"} />
               <DetailRow label="Payment method" value={booking.paymentMethod || "Not selected"} />
               <DetailRow label="Service subtotal" value={formatCurrency(serviceSubtotal)} />
               <DetailRow label="Product add-ons" value={formatCurrency(addonsSubtotal)} />

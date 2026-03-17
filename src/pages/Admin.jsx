@@ -155,6 +155,13 @@ function escapeCsv(value) {
   return text;
 }
 
+function normalizeLegacyBookingStatus(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "accepted") return "approved";
+  if (normalized === "declined") return "cancelled";
+  return normalized || "pending";
+}
+
 function downloadCsv(filename, rows) {
   if (!rows.length || typeof window === "undefined") return;
   const keys = Object.keys(rows[0]);
@@ -173,7 +180,7 @@ function downloadCsv(filename, rows) {
 
 async function loadDashboard(token) {
   const options = { token };
-  const [bookings, orders, messages, products, deliveryFees] = await Promise.all([
+  const [bookingsResponse, orders, messages, products, deliveryFees] = await Promise.all([
     apiRequest("/api/admin/bookings", options),
     apiRequest("/api/admin/product-orders", options),
     apiRequest("/api/admin/messages", options),
@@ -181,8 +188,15 @@ async function loadDashboard(token) {
     apiRequest("/api/admin/product-orders/delivery-fees", options)
   ]);
 
+  const bookings = Array.isArray(bookingsResponse)
+    ? bookingsResponse.map((item) => ({
+      ...item,
+      status: normalizeLegacyBookingStatus(item?.status)
+    }))
+    : [];
+
   return {
-    bookings: Array.isArray(bookings) ? bookings : [],
+    bookings,
     orders: Array.isArray(orders) ? orders : [],
     messages: Array.isArray(messages) ? messages : [],
     products: Array.isArray(products) ? products : [],
@@ -521,9 +535,38 @@ export default function Admin() {
     try {
       setRequestingLoginOtp(true);
       const data = await apiPost("/api/admin/request-login-access", { email, secretPasscode });
+      const fallbackCode = String(data?.accessCode || "").trim();
+      const deliveredChannels = Array.isArray(data?.deliveredBy) ? data.deliveredBy : [];
+      const emailReason = String(data?.delivery?.email?.reason || "").trim();
+      const smsReason = String(data?.delivery?.sms?.reason || "").trim();
+
+      if (fallbackCode) {
+        setLogin((prev) => ({ ...prev, oneTimeCode: fallbackCode }));
+      }
+
+      const fallbackMessage = fallbackCode
+        ? `Fallback OTP: ${fallbackCode}. It has been auto-filled in the OTP field.`
+        : "";
+      const channelSummary = deliveredChannels.length
+        ? `Delivery channel: ${deliveredChannels.join(" & ")}.`
+        : "Delivery channel: response.";
+      const diagnostics = [
+        emailReason ? `Email: ${emailReason}` : "",
+        smsReason ? `SMS: ${smsReason}` : ""
+      ]
+        .filter(Boolean)
+        .join(" | ");
+
       setAuthNotice({
-        tone: "success",
-        message: `${data.message || "One-time code sent."} Check ${email} inbox (and spam) and continue login.`
+        tone: fallbackCode ? "info" : "success",
+        message: [
+          data.message || "One-time code sent.",
+          fallbackCode ? fallbackMessage : `Check ${email} inbox (and spam) and continue login.`,
+          channelSummary,
+          diagnostics
+        ]
+          .filter(Boolean)
+          .join(" ")
       });
     } catch (error) {
       setAuthNotice({ tone: "error", message: getErrorMessage(error) });
@@ -2304,7 +2347,7 @@ export default function Admin() {
       <div className="pointer-events-none absolute -right-16 bottom-20 h-64 w-64 rounded-full bg-brand-light/35 blur-3xl" />
       {renderAnimatedAdminBackground()}
 
-      <div className="relative z-10 mx-auto max-w-[100rem]">
+      <div className="relative z-10 mx-auto max-w-400">
         <AdminDashboardProvider value={dashboardContextValue}>
           <AdminLayout
             activeSection={activeSection}

@@ -62,7 +62,7 @@ export const heroBackdropImages = [
 ];
 
 export const sectionBackdrops = {
-  ceo: [assetPath("ysmceo.jpeg"), assetPath("ysmwife.jpeg"), assetPath("p6 styling.jpg")],
+  ceo: ["https://t3.ftcdn.net/jpg/06/95/65/86/360_F_695658639_nSrC4GJ1cz7O43uw495At6M0pVENrprA.jpg", "https://img.freepik.com/free-photo/beautiful-african-woman-face-portrait-close-up_53876-148041.jpg", assetPath("p6 styling.jpg")],
   services: [assetPath("p1.webp"), assetPath("p2 hair color.jpg"), assetPath("p5 relaxation services.jpg")],
   products: [assetPath("premium wig.jpeg"), assetPath("hair cream.jpeg"), assetPath("prefume.jpeg")],
   gallery: [assetPath("p1.webp"), MANICURE_IMAGE_URL, assetPath("p6 styling.jpg")],
@@ -79,13 +79,13 @@ export const ceoProfiles = [
   {
     name: "Okonta Victor",
     role: "Founder and Creative Director",
-    image: assetPath("ysmceo.jpeg"),
+    image: "https://t3.ftcdn.net/jpg/06/95/65/86/360_F_695658639_nSrC4GJ1cz7O43uw495At6M0pVENrprA.jpg",
     summary: "Leads grooming standards, service quality, and the salon's client experience."
   },
   {
     name: "Okonta Lizzy",
     role: "Co-Founder and Operations Lead",
-    image: assetPath("ysmwife.jpeg"),
+    image: "https://img.freepik.com/free-photo/beautiful-african-woman-face-portrait-close-up_53876-148041.jpg",
     summary: "Oversees guest care, treatment quality, and the smooth running of daily operations."
   }
 ];

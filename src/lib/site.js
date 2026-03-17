@@ -27,8 +27,19 @@ export function formatDateTime(value) {
 export function getErrorMessage(error) {
   const payload = error && typeof error === "object" ? error.payload : null;
   const payloadCode = payload && typeof payload === "object" ? String(payload.code || "").trim().toUpperCase() : "";
+  const payloadError = payload && typeof payload === "object" ? String(payload.error || "").trim() : "";
+  const otpEmailReason = payload && payload.delivery && payload.delivery.email
+    ? String(payload.delivery.email.reason || "").trim()
+    : "";
   const rawMessage = error instanceof Error && error.message ? String(error.message) : "";
   const normalizedMessage = rawMessage.toLowerCase();
+
+  if (payloadError.toLowerCase().includes("failed to deliver otp")) {
+    if (otpEmailReason) {
+      return `Failed to send admin OTP email: ${otpEmailReason}`;
+    }
+    return payloadError;
+  }
 
   if (payloadCode === "SMTP_NOT_CONFIGURED") {
     return "Email sending is not configured on the backend yet. Add SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, and SMTP_FROM in your backend environment, then restart/redeploy the backend.";
