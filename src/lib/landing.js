@@ -85,7 +85,7 @@ export const ceoProfiles = [
   {
     name: "Okonta Lizzy",
     role: "Co-Founder and Operations Lead",
-    image: "https://img.freepik.com/free-photo/beautiful-african-woman-face-portrait-close-up_53876-148041.jpg",
+    image: "https://media.istockphoto.com/id/1326417862/photo/young-woman-laughing-while-relaxing-at-home.jpg?s=612x612&w=0&k=20&c=cd8e6RBGOe4b8a8vTcKW0Jo9JONv1bKSMTKcxaCra8c=",
     summary: "Oversees guest care, treatment quality, and the smooth running of daily operations."
   }
 ];

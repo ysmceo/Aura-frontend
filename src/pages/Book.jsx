@@ -13,6 +13,53 @@ import { sectionBackdrops } from "@/lib/landing";
 
 const CASH_PAYMENT_METHOD = "Cash";
 
+function toGoogleMapsLink(latitude, longitude) {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return "";
+  }
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
+}
+
+async function reverseGeocodeHomeAddress(latitude, longitude) {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new Error("Invalid location coordinates.");
+  }
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&zoom=18&addressdetails=1`,
+    {
+      headers: {
+        Accept: "application/json"
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Address lookup failed (${response.status}).`);
+  }
+
+  const payload = await response.json();
+  const displayName = String(payload && payload.display_name ? payload.display_name : "").trim();
+  const mapLink = toGoogleMapsLink(lat, lon);
+
+  if (!displayName && !mapLink) {
+    throw new Error("Could not resolve a usable home address.");
+  }
+
+  if (displayName && mapLink) {
+    return `${displayName} (Google Maps: ${mapLink})`;
+  }
+
+  return displayName || mapLink;
+}
+
 function getPaystackChannelFromMethod(paymentMethod) {
   const method = String(paymentMethod || "").trim();
 
@@ -85,8 +132,49 @@ export default function Book() {
   const [bookingNotice, setBookingNotice] = useState(null);
   const [bookingResult, setBookingResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [homeLocationResolving, setHomeLocationResolving] = useState(false);
 
   const isCashPayment = String(booking.paymentMethod || "").trim() === CASH_PAYMENT_METHOD;
+
+  async function autofillHomeServiceAddressFromCurrentLocation() {
+    if (typeof window === "undefined" || !window.navigator || !window.navigator.geolocation) {
+      setBookingNotice({
+        tone: "info",
+        message: "Location is not available on this device/browser. Please enter your home address manually."
+      });
+      return;
+    }
+
+    setHomeLocationResolving(true);
+    setBookingNotice({ tone: "info", message: "Requesting location permission for home-service address..." });
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        window.navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        });
+      });
+
+      const latitude = Number(position && position.coords ? position.coords.latitude : NaN);
+      const longitude = Number(position && position.coords ? position.coords.longitude : NaN);
+      const resolvedAddress = await reverseGeocodeHomeAddress(latitude, longitude);
+
+      setBooking((current) => ({ ...current, homeServiceAddress: resolvedAddress }));
+      setBookingNotice({
+        tone: "success",
+        message: "Home-service address detected from your current location. You can edit it if needed."
+      });
+    } catch {
+      setBookingNotice({
+        tone: "error",
+        message: "Could not detect your current address automatically. Please type your home address manually."
+      });
+    } finally {
+      setHomeLocationResolving(false);
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -414,13 +502,22 @@ export default function Book() {
               <SelectField
                 id="booking-home-service"
                 label="Home service"
-                onChange={(event) =>
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  const shouldAutoLocate =
+                    nextValue === "Yes" &&
+                    !String(booking.homeServiceAddress || "").trim();
+
                   setBooking((current) => ({
                     ...current,
-                    homeServiceRequested: event.target.value,
-                    homeServiceAddress: event.target.value === "Yes" ? current.homeServiceAddress : ""
-                  }))
-                }
+                    homeServiceRequested: nextValue,
+                    homeServiceAddress: nextValue === "Yes" ? current.homeServiceAddress : ""
+                  }));
+
+                  if (shouldAutoLocate) {
+                    void autofillHomeServiceAddressFromCurrentLocation();
+                  }
+                }}
                 value={booking.homeServiceRequested}
               >
                 <option value="No">No (in-salon)</option>
@@ -466,13 +563,30 @@ export default function Book() {
             ) : null}
 
             {booking.homeServiceRequested === "Yes" ? (
-              <TextField
-                id="booking-home-address"
-                label="Home service address"
-                onChange={(event) => setBooking((current) => ({ ...current, homeServiceAddress: event.target.value }))}
-                required
-                value={booking.homeServiceAddress}
-              />
+              <div className="space-y-3">
+                <TextField
+                  id="booking-home-address"
+                  label="Home service address"
+                  onChange={(event) => setBooking((current) => ({ ...current, homeServiceAddress: event.target.value }))}
+                  required
+                  value={booking.homeServiceAddress}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={homeLocationResolving}
+                    onClick={() => {
+                      void autofillHomeServiceAddressFromCurrentLocation();
+                    }}
+                  >
+                    {homeLocationResolving ? "Detecting location..." : "Use current location"}
+                  </Button>
+                  {booking.homeServiceAddress.includes("Google Maps:") ? (
+                    <span className="text-xs text-ink-soft">Google Maps link included for easier staff routing.</span>
+                  ) : null}
+                </div>
+              </div>
             ) : null}
 
             <Field htmlFor="booking-special-requests" label="Special requests" help="Optional notes for styling preferences, allergies, or other requests.">
