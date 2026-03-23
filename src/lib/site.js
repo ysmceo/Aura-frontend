@@ -41,8 +41,12 @@ export function getErrorMessage(error) {
     return payloadError;
   }
 
-  if (payloadCode === "SMTP_NOT_CONFIGURED") {
-    return "Email sending is not configured on the backend yet. Add SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, and SMTP_FROM in your backend environment, then restart/redeploy the backend.";
+  if (
+    payloadCode === "SMTP_NOT_CONFIGURED" ||
+    payloadCode === "EMAIL_NOT_CONFIGURED" ||
+    payloadCode === "BREVO_NOT_CONFIGURED"
+  ) {
+    return "Email sending is not configured on the backend yet. Configure Brevo (EMAIL_PROVIDER, BREVO_API_KEY, EMAIL_FROM) or SMTP (SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_FROM), then restart/redeploy the backend.";
   }
 
   if (
