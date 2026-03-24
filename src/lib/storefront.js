@@ -47,8 +47,12 @@ export function resolveMediaSrc(source) {
     return value;
   }
 
-  if (/^\/?uploads\//i.test(value) || /^\/?images\//i.test(value)) {
+  if (/^\/?uploads\//i.test(value)) {
     return encodeURI(resolveBackendAssetUrl(value.startsWith("/") ? value : `/${value}`));
+  }
+
+  if (/^\/?images\//i.test(value)) {
+    return encodeURI(value.startsWith("/") ? value : `/${value}`);
   }
 
   if (value.startsWith("/")) {
