@@ -537,6 +537,8 @@ export default function Admin() {
       const data = await apiPost("/api/admin/request-login-access", { email, secretPasscode });
       const fallbackCode = String(data?.accessCode || "").trim();
       const deliveredChannels = Array.isArray(data?.deliveredBy) ? data.deliveredBy : [];
+      const deliveryEmailTarget = String(data?.deliveryTargets?.email || "").trim();
+      const usingEmailOverride = Boolean(data?.deliveryTargets?.usingEmailOverride);
       const emailReason = String(data?.delivery?.email?.reason || "").trim();
       const smsReason = String(data?.delivery?.sms?.reason || "").trim();
 
@@ -547,6 +549,11 @@ export default function Admin() {
       const fallbackMessage = fallbackCode
         ? `Fallback OTP: ${fallbackCode}. It has been auto-filled in the OTP field.`
         : "";
+      const inboxMessage = fallbackCode
+        ? ""
+        : usingEmailOverride && deliveryEmailTarget
+          ? `OTP email is currently routed to ${deliveryEmailTarget} because ADMIN_LOGIN_OTP_EMAIL_OVERRIDE is set. Check that inbox (and spam) and continue login.`
+          : `Check ${(deliveryEmailTarget || email)} inbox (and spam) and continue login.`;
       const channelSummary = deliveredChannels.length
         ? `Delivery channel: ${deliveredChannels.join(" & ")}.`
         : "Delivery channel: response.";
@@ -561,7 +568,7 @@ export default function Admin() {
         tone: fallbackCode ? "info" : "success",
         message: [
           data.message || "One-time code sent.",
-          fallbackCode ? fallbackMessage : `Check ${email} inbox (and spam) and continue login.`,
+          fallbackCode ? fallbackMessage : inboxMessage,
           channelSummary,
           diagnostics
         ]

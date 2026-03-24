@@ -35,7 +35,7 @@ function canUseWindow() {
 }
 
 function buildLocalApiFallbackUrls(pathname) {
-  if (API_BASE_URL || !canUseWindow()) {
+  if (!canUseWindow()) {
     return [];
   }
 
