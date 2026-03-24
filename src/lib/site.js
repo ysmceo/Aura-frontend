@@ -42,29 +42,29 @@ export function getErrorMessage(error) {
   }
 
   if (
-    payloadCode === "SMTP_NOT_CONFIGURED" ||
     payloadCode === "EMAIL_NOT_CONFIGURED" ||
-    payloadCode === "BREVO_NOT_CONFIGURED"
+    payloadCode === "BREVO_NOT_CONFIGURED" ||
+    payloadCode === "EMAIL_FROM_INVALID"
   ) {
-    return "Email sending is not configured on the backend yet. Configure Brevo (EMAIL_PROVIDER, BREVO_API_KEY, EMAIL_FROM) or SMTP (SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_FROM), then restart/redeploy the backend.";
+    return "Email sending is not configured on the backend yet. Configure Brevo (BREVO_API_KEY, BREVO_BASE_URL, EMAIL_FROM), then restart/redeploy the backend.";
   }
 
   if (
+    normalizedMessage.includes("api key") ||
+    normalizedMessage.includes("unauthorized") ||
     normalizedMessage.includes("invalid login") ||
     normalizedMessage.includes("bad credentials") ||
-    normalizedMessage.includes("username and password") ||
     normalizedMessage.includes("authentication failed")
   ) {
-    return "Email login failed on the backend SMTP server. Re-check SMTP_USER and SMTP_PASS (for Gmail, use an App Password), then restart/redeploy the backend.";
+    return "Brevo rejected the backend email credentials. Re-check BREVO_API_KEY and your Brevo sender settings, then restart/redeploy the backend.";
   }
 
   if (
-    normalizedMessage.includes("greeting never received") ||
     normalizedMessage.includes("etimedout") ||
     normalizedMessage.includes("timeout") ||
     normalizedMessage.includes("econnection")
   ) {
-    return "Email server connection timed out. Check SMTP host/port/security settings and allow outbound SMTP traffic from your hosting provider.";
+    return "Brevo email delivery timed out. Check BREVO_BASE_URL, your hosting network access, and try again.";
   }
 
   if (error instanceof Error && error.message) {
