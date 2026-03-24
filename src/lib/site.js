@@ -49,6 +49,10 @@ export function getErrorMessage(error) {
     return "Email sending is not configured on the backend yet. Configure Brevo (BREVO_API_KEY, BREVO_BASE_URL, EMAIL_FROM), then restart/redeploy the backend.";
   }
 
+  if (payloadCode === "BREVO_API_KEY_INVALID") {
+    return "BREVO_API_KEY is the wrong key type. Use a Brevo HTTP API key starting with xkeysib-, not an SMTP key starting with xsmtpsib-.";
+  }
+
   if (
     normalizedMessage.includes("api key") ||
     normalizedMessage.includes("unauthorized") ||
