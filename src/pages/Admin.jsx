@@ -215,7 +215,7 @@ export default function Admin() {
     const BOOKINGS_PER_PAGE = 5;
     const ORDERS_PER_PAGE = 5;
   const [token, setToken] = useState(() => (typeof window !== "undefined" ? window.localStorage.getItem(TOKEN_KEY) || "" : ""));
-  const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
   const [authNotice, setAuthNotice] = useState(null);
   const [dashboardNotice, setDashboardNotice] = useState(null);
   const [moderationNotice, setModerationNotice] = useState(null);
@@ -587,7 +587,6 @@ export default function Admin() {
     try {
       const data = await apiPost("/api/admin/register", register);
       setAuthNotice({ tone: "success", message: data.message || "Admin registered." });
-      setRegistrationOpen(false);
       setLogin({ email: register.email, password: register.password, oneTimeCode: "", secretPasscode: register.secretPasscode });
     } catch (error) {
       setAuthNotice({ tone: "error", message: getErrorMessage(error) });
@@ -2140,11 +2139,11 @@ export default function Admin() {
                     value={login.oneTimeCode}
                     onChange={(event) => setLogin((prev) => ({ ...prev, oneTimeCode: event.target.value }))}
                     className="h-11 w-full rounded-[1.35rem] border border-line bg-panel/88 px-4 text-sm text-ink shadow-sm backdrop-blur-sm transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
-                    placeholder="Enter OTP from admin email"
+                    placeholder="Enter OTP from admin or override inbox"
                     inputMode="numeric"
                     autoComplete="one-time-code"
                   />
-                  <p className="text-xs leading-5 text-ink-soft">Step 1: enter admin secret code + click “Send one-time code”. Step 2: check the same email inbox and login with OTP.</p>
+                  <p className="text-xs leading-5 text-ink-soft">Step 1: enter admin secret code and click Send one-time code. Step 2: check the inbox shown in the success message; override inbox is used when configured.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={handleRequestLoginOtp} disabled={requestingLoginOtp}>
@@ -2155,7 +2154,7 @@ export default function Admin() {
               </form>
             </Surface>
             <Surface className="space-y-5">
-              <SectionHeading eyebrow="Register" title="Initial admin setup" description="Visible only while admin registration is still open." />
+              <SectionHeading eyebrow="Register" title="Register admin" description="Use the admin secret code to add another admin account." />
               {registrationOpen ? (
                 <form className="space-y-4" onSubmit={handleRegister}>
                   <TextField label="Name" id="register-name" required value={register.name} onChange={(event) => setRegister((prev) => ({ ...prev, name: event.target.value }))} />
@@ -2208,7 +2207,7 @@ export default function Admin() {
                   <Button className="w-full sm:w-auto" type="submit">Register admin</Button>
                 </form>
               ) : (
-                <EmptyState title="Registration closed" description="An admin already exists. Use the login form instead." />
+                <EmptyState title="Registration unavailable" description="Admin registration is not available right now." />
               )}
             </Surface>
           </div>
