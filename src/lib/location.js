@@ -11,6 +11,49 @@ export function buildGoogleMapsLink(latitude, longitude) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
 }
 
+function formatCoordinate(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(6) : "";
+}
+
+function buildCoordinateAddress(latitude, longitude) {
+  const lat = formatCoordinate(latitude);
+  const lon = formatCoordinate(longitude);
+
+  return lat && lon ? `Current location: ${lat}, ${lon}` : "Current location detected";
+}
+
+function cleanResolvedAddress(value) {
+  return String(value || "")
+    .replace(/\s*\(Google Maps:\s*https?:\/\/[^)]+\)\s*$/i, "")
+    .replace(/\s*Google Maps:\s*https?:\/\/\S+\s*$/i, "")
+    .trim();
+}
+
+async function reverseGeocodeInBrowser(latitude, longitude) {
+  const query = new URLSearchParams({
+    format: "jsonv2",
+    lat: String(latitude),
+    lon: String(longitude),
+    zoom: "18",
+    addressdetails: "1"
+  });
+
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${query.toString()}`, {
+    headers: {
+      Accept: "application/json"
+    },
+    credentials: "omit"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Address lookup failed (${response.status})`);
+  }
+
+  const payload = await response.json();
+  return cleanResolvedAddress(payload?.display_name || payload?.name);
+}
+
 function getBrowserPosition() {
   if (typeof window === "undefined" || !window.navigator || !window.navigator.geolocation) {
     const error = new Error("Location is not available on this device/browser.");
@@ -57,26 +100,31 @@ export async function resolveCurrentLocationAddress() {
   }
 
   const fallbackMapLink = buildGoogleMapsLink(latitude, longitude);
+  let address = "";
+  let mapLink = fallbackMapLink;
 
   try {
     const data = await apiGet(
       `/api/location/reverse-geocode?latitude=${encodeURIComponent(String(latitude))}&longitude=${encodeURIComponent(String(longitude))}`
     );
-    const address = String(data?.formattedAddress || data?.address || "").trim();
-    const mapLink = String(data?.mapLink || fallbackMapLink).trim();
-
-    return {
-      latitude,
-      longitude,
-      mapLink,
-      address: address || `Current location (Google Maps: ${mapLink || fallbackMapLink})`
-    };
+    address = cleanResolvedAddress(data?.address || data?.formattedAddress);
+    mapLink = String(data?.mapLink || fallbackMapLink).trim();
   } catch {
-    return {
-      latitude,
-      longitude,
-      mapLink: fallbackMapLink,
-      address: `Current location (Google Maps: ${fallbackMapLink})`
-    };
+    // If the app API is not reachable, try a browser-side lookup before falling back to coordinates.
   }
+
+  if (!address) {
+    try {
+      address = await reverseGeocodeInBrowser(latitude, longitude);
+    } catch {
+      address = "";
+    }
+  }
+
+  return {
+    latitude,
+    longitude,
+    mapLink,
+    address: address || buildCoordinateAddress(latitude, longitude)
+  };
 }
