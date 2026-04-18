@@ -6,6 +6,7 @@ import { DetailRow, EmptyState, Field, Notice, SectionHeading, SelectField, Surf
 import { SitePageShell } from "@/components/site/marketing";
 import { ProductPicker } from "@/components/site/storefront";
 import { apiPost } from "@/lib/api";
+import { getCurrentLocationErrorMessage, resolveCurrentLocationAddress } from "@/lib/location";
 import { formatCurrency, getErrorMessage } from "@/lib/site";
 import { getSelectionTotal, loadCatalog, PAYMENT_METHODS, buildSelectedItems } from "@/lib/storefront";
 import { sectionBackdrops } from "@/lib/landing";
@@ -50,12 +51,16 @@ export default function OrderProducts() {
     email: "",
     phone: "",
     address: "",
+    deliveryLatitude: "",
+    deliveryLongitude: "",
+    deliveryMapLink: "",
     paymentMethod: "Bank Transfer",
     deliverySpeed: "standard"
   });
   const [orderItems, setOrderItems] = useState({});
   const [orderNotice, setOrderNotice] = useState(null);
   const [orderResult, setOrderResult] = useState(null);
+  const [orderLocationResolving, setOrderLocationResolving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -88,6 +93,30 @@ export default function OrderProducts() {
   const subtotal = getSelectionTotal(products, orderItems);
   const deliveryFee = Number(fees[order.deliverySpeed] || 0);
   const grandTotal = subtotal + deliveryFee;
+
+  async function autofillDeliveryAddressFromCurrentLocation() {
+    setOrderLocationResolving(true);
+    setOrderNotice({ tone: "info", message: "Requesting location permission for delivery address..." });
+
+    try {
+      const resolvedLocation = await resolveCurrentLocationAddress();
+      setOrder((current) => ({
+        ...current,
+        address: resolvedLocation.address,
+        deliveryLatitude: String(resolvedLocation.latitude),
+        deliveryLongitude: String(resolvedLocation.longitude),
+        deliveryMapLink: resolvedLocation.mapLink
+      }));
+      setOrderNotice({
+        tone: "success",
+        message: "Current location added for delivery. You can edit the address if needed."
+      });
+    } catch (error) {
+      setOrderNotice({ tone: "error", message: getCurrentLocationErrorMessage(error) });
+    } finally {
+      setOrderLocationResolving(false);
+    }
+  }
 
   async function submitOrder(event) {
     event.preventDefault();
@@ -184,10 +213,32 @@ export default function OrderProducts() {
             <TextField
               id="order-address"
               label="Delivery address"
-              onChange={(event) => setOrder((current) => ({ ...current, address: event.target.value }))}
+              onChange={(event) => setOrder((current) => ({
+                ...current,
+                address: event.target.value,
+                deliveryLatitude: "",
+                deliveryLongitude: "",
+                deliveryMapLink: ""
+              }))}
               required
               value={order.address}
             />
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={orderLocationResolving}
+                onClick={() => {
+                  void autofillDeliveryAddressFromCurrentLocation();
+                }}
+              >
+                {orderLocationResolving ? "Detecting location..." : "Use current location"}
+              </Button>
+              {order.deliveryMapLink || order.address.includes("Google Maps:") ? (
+                <span className="text-xs text-ink-soft">Google Maps link included for delivery routing.</span>
+              ) : null}
+            </div>
 
             <Field label="Product selections">
               <ProductPicker onChange={(id, value) => setOrderItems((current) => ({ ...current, [id]: value }))} products={products} quantities={orderItems} />

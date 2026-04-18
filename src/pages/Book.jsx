@@ -7,58 +7,12 @@ import { Field, Notice, SectionHeading, SelectField, Surface, TextField, DetailR
 import { SitePageShell } from "@/components/site/marketing";
 import { ProductPicker } from "@/components/site/storefront";
 import { apiGet, apiRequest } from "@/lib/api";
+import { getCurrentLocationErrorMessage, resolveCurrentLocationAddress } from "@/lib/location";
 import { getErrorMessage, formatCurrency } from "@/lib/site";
 import { buildSelectedItems, getSelectionTotal, getTodayDateInputValue, loadCatalog, PAYMENT_METHODS } from "@/lib/storefront";
 import { sectionBackdrops } from "@/lib/landing";
 
 const CASH_PAYMENT_METHOD = "Cash";
-
-function toGoogleMapsLink(latitude, longitude) {
-  const lat = Number(latitude);
-  const lon = Number(longitude);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return "";
-  }
-
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
-}
-
-async function reverseGeocodeHomeAddress(latitude, longitude) {
-  const lat = Number(latitude);
-  const lon = Number(longitude);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    throw new Error("Invalid location coordinates.");
-  }
-
-  const response = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&zoom=18&addressdetails=1`,
-    {
-      headers: {
-        Accept: "application/json"
-      }
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Address lookup failed (${response.status}).`);
-  }
-
-  const payload = await response.json();
-  const displayName = String(payload && payload.display_name ? payload.display_name : "").trim();
-  const mapLink = toGoogleMapsLink(lat, lon);
-
-  if (!displayName && !mapLink) {
-    throw new Error("Could not resolve a usable home address.");
-  }
-
-  if (displayName && mapLink) {
-    return `${displayName} (Google Maps: ${mapLink})`;
-  }
-
-  return displayName || mapLink;
-}
 
 function getPaystackChannelFromMethod(paymentMethod) {
   const method = String(paymentMethod || "").trim();
@@ -121,6 +75,9 @@ export default function Book() {
     selectedStaff: "",
     homeServiceRequested: "No",
     homeServiceAddress: "",
+    homeServiceLatitude: "",
+    homeServiceLongitude: "",
+    homeServiceMapLink: "",
     refreshment: "No",
     specialRequests: "",
     paymentMethod: "Bank Transfer",
@@ -137,39 +94,27 @@ export default function Book() {
   const isCashPayment = String(booking.paymentMethod || "").trim() === CASH_PAYMENT_METHOD;
 
   async function autofillHomeServiceAddressFromCurrentLocation() {
-    if (typeof window === "undefined" || !window.navigator || !window.navigator.geolocation) {
-      setBookingNotice({
-        tone: "info",
-        message: "Location is not available on this device/browser. Please enter your home address manually."
-      });
-      return;
-    }
-
     setHomeLocationResolving(true);
     setBookingNotice({ tone: "info", message: "Requesting location permission for home-service address..." });
 
     try {
-      const position = await new Promise((resolve, reject) => {
-        window.navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        });
-      });
+      const resolvedLocation = await resolveCurrentLocationAddress();
 
-      const latitude = Number(position && position.coords ? position.coords.latitude : NaN);
-      const longitude = Number(position && position.coords ? position.coords.longitude : NaN);
-      const resolvedAddress = await reverseGeocodeHomeAddress(latitude, longitude);
-
-      setBooking((current) => ({ ...current, homeServiceAddress: resolvedAddress }));
+      setBooking((current) => ({
+        ...current,
+        homeServiceAddress: resolvedLocation.address,
+        homeServiceLatitude: String(resolvedLocation.latitude),
+        homeServiceLongitude: String(resolvedLocation.longitude),
+        homeServiceMapLink: resolvedLocation.mapLink
+      }));
       setBookingNotice({
         tone: "success",
-        message: "Home-service address detected from your current location. You can edit it if needed."
+        message: "Current location added for home service. You can edit the address if needed."
       });
-    } catch {
+    } catch (error) {
       setBookingNotice({
         tone: "error",
-        message: "Could not detect your current address automatically. Please type your home address manually."
+        message: getCurrentLocationErrorMessage(error)
       });
     } finally {
       setHomeLocationResolving(false);
@@ -278,6 +223,9 @@ export default function Book() {
     payload.append("selectedStaff", booking.selectedStaff);
     payload.append("homeServiceRequested", String(booking.homeServiceRequested).toLowerCase() === "yes" ? "true" : "false");
     payload.append("homeServiceAddress", booking.homeServiceAddress);
+    payload.append("homeServiceLatitude", booking.homeServiceLatitude);
+    payload.append("homeServiceLongitude", booking.homeServiceLongitude);
+    payload.append("homeServiceMapLink", booking.homeServiceMapLink);
     payload.append("refreshment", booking.refreshment);
     payload.append("specialRequests", booking.specialRequests);
     payload.append("paymentMethod", booking.paymentMethod);
@@ -511,7 +459,10 @@ export default function Book() {
                   setBooking((current) => ({
                     ...current,
                     homeServiceRequested: nextValue,
-                    homeServiceAddress: nextValue === "Yes" ? current.homeServiceAddress : ""
+                    homeServiceAddress: nextValue === "Yes" ? current.homeServiceAddress : "",
+                    homeServiceLatitude: nextValue === "Yes" ? current.homeServiceLatitude : "",
+                    homeServiceLongitude: nextValue === "Yes" ? current.homeServiceLongitude : "",
+                    homeServiceMapLink: nextValue === "Yes" ? current.homeServiceMapLink : ""
                   }));
 
                   if (shouldAutoLocate) {
@@ -567,7 +518,13 @@ export default function Book() {
                 <TextField
                   id="booking-home-address"
                   label="Home service address"
-                  onChange={(event) => setBooking((current) => ({ ...current, homeServiceAddress: event.target.value }))}
+                  onChange={(event) => setBooking((current) => ({
+                    ...current,
+                    homeServiceAddress: event.target.value,
+                    homeServiceLatitude: "",
+                    homeServiceLongitude: "",
+                    homeServiceMapLink: ""
+                  }))}
                   required
                   value={booking.homeServiceAddress}
                 />
@@ -582,7 +539,7 @@ export default function Book() {
                   >
                     {homeLocationResolving ? "Detecting location..." : "Use current location"}
                   </Button>
-                  {booking.homeServiceAddress.includes("Google Maps:") ? (
+                  {booking.homeServiceMapLink || booking.homeServiceAddress.includes("Google Maps:") ? (
                     <span className="text-xs text-ink-soft">Google Maps link included for easier staff routing.</span>
                   ) : null}
                 </div>

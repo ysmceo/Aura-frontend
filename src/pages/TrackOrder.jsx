@@ -191,6 +191,13 @@ export default function TrackOrder() {
                 <DetailRow label="Email" value={order.email || form.email} />
                 <DetailRow label="Created" value={formatDateTime(order.createdAt)} />
                 <DetailRow label="Delivery speed" value={String(order.deliverySpeed || "standard")} />
+                <DetailRow label="Delivery address" value={order.address || "Not provided"} />
+                {order.deliveryMapLink ? (
+                  <DetailRow
+                    label="Map"
+                    value={<a className="text-brand underline-offset-4 hover:underline" href={order.deliveryMapLink} target="_blank" rel="noreferrer">Open current location</a>}
+                  />
+                ) : null}
                 <div className="flex items-center justify-between gap-4 text-sm">
                   <span className="text-ink-soft">Status</span>
                   <StatusPill value={order.status || "pending"} />

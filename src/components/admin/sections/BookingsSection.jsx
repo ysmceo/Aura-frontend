@@ -137,6 +137,15 @@ export default function BookingsSection() {
               <DetailRow label="Scheduled" value={`${focusedBooking.date || ""} ${focusedBooking.time || ""}`.trim() || "N/A"} />
               <DetailRow label="Payment method" value={focusedBooking.paymentMethod || "N/A"} />
               <DetailRow label="Amount due now" value={formatCurrency(focusedBooking.amountDueNow || 0)} />
+              {focusedBooking.serviceMode === "home" ? (
+                <DetailRow label="Home address" value={focusedBooking.homeServiceAddress || "N/A"} />
+              ) : null}
+              {focusedBooking.homeServiceMapLink ? (
+                <DetailRow
+                  label="Map"
+                  value={<a className="text-brand underline-offset-4 hover:underline" href={focusedBooking.homeServiceMapLink} target="_blank" rel="noreferrer">Open current location</a>}
+                />
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -243,6 +252,15 @@ export default function BookingsSection() {
                   <DetailRow label="Email" value={item.email || "N/A"} />
                   <DetailRow label="Phone" value={item.phone || "N/A"} />
                   <DetailRow label="Due now" value={formatCurrency(item.amountDueNow)} />
+                  {item.serviceMode === "home" ? (
+                    <DetailRow label="Home address" value={item.homeServiceAddress || "N/A"} />
+                  ) : null}
+                  {item.homeServiceMapLink ? (
+                    <DetailRow
+                      label="Map"
+                      value={<a className="text-brand underline-offset-4 hover:underline" href={item.homeServiceMapLink} target="_blank" rel="noreferrer">Open current location</a>}
+                    />
+                  ) : null}
                 </div>
                 <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                   <select

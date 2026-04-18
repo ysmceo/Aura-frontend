@@ -122,8 +122,15 @@ export default function OrdersSection() {
                   <DetailRow label="Customer" value={item.name} />
                   <DetailRow label="Email" value={item.email || "N/A"} />
                   <DetailRow label="Phone" value={item.phone || "N/A"} />
+                  <DetailRow label="Delivery address" value={item.address || "N/A"} />
                   <DetailRow label="Delivery speed" value={item.deliverySpeed} />
                   <DetailRow label="Total" value={formatCurrency(item.totalAmount)} />
+                  {item.deliveryMapLink ? (
+                    <DetailRow
+                      label="Map"
+                      value={<a className="text-brand underline-offset-4 hover:underline" href={item.deliveryMapLink} target="_blank" rel="noreferrer">Open current location</a>}
+                    />
+                  ) : null}
                 </div>
                 <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                   <select

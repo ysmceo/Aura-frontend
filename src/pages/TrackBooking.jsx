@@ -199,6 +199,12 @@ export default function TrackBooking() {
                 {booking.serviceMode === "home" ? (
                   <DetailRow label="Home service address" value={booking.homeServiceAddress || "Not provided"} />
                 ) : null}
+                {booking.homeServiceMapLink ? (
+                  <DetailRow
+                    label="Map"
+                    value={<a className="text-brand underline-offset-4 hover:underline" href={booking.homeServiceMapLink} target="_blank" rel="noreferrer">Open current location</a>}
+                  />
+                ) : null}
                 <DetailRow label="Refreshment" value={booking.refreshment || "No"} />
                 <DetailRow label="Special requests" value={booking.specialRequests || "None"} />
                 <div className="flex items-center justify-between gap-4 text-sm">
